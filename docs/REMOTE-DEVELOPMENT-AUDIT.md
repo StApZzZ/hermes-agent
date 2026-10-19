@@ -69,6 +69,9 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
   Includes real subprocess bytes/exit, standalone script from another cwd and
   actual main dispatch with forbidden PM/model/config/agent imports.
 - Existing startup import-weight and command-resolution guards: 2 passed.
+- Replayed the original MVP and revised launcher with the same inputs: default
+  cross-project tmux collision and code.cmd execution reproduce on the MVP and
+  are absent in the revised commands.
 - Installed VS Code 1.142.0: native executable/CLI JS `--version` returned 0,
   expected version output, and empty stderr; no window/remote server was opened.
 - Scoped `scripts/check --only health,ruff --base <MVP>` passed with pinned Ruff
@@ -79,9 +82,23 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
   Runs are queued on GitHub at reporting time; check PR #1 for final results.
 - Full Hermes suite and PM-managed code-health checks are not represented by
   the standalone lane; they require a complete Hermes dev/test environment.
-- No development server/credentials supplied: unrelated SSH hosts were not used.
-  Real VS Code UI, actual Hermes ACP with model/provider, and authenticated Claude
-  remain target-server acceptance checks.
+- A dedicated target was supplied after local validation. Its SSH service is
+  reachable, but it currently rejects the designated public key; live acceptance
+  is pending SSH authorization. Unrelated SSH hosts were not used. Real VS Code
+  UI, actual Hermes ACP with model/provider and authenticated Claude are unverified.
+
+## Changed files
+
+| Files | Purpose |
+| --- | --- |
+| `hermes_cli/main.py`, `hermes_cli/_startup_fast.py` | Lightweight routing and CLI compatibility; move the existing gateway argv predicate to the startup sibling to preserve the facade size cap. |
+| `hermes_cli/subcommands/remote.py` | SSH, VS Code, tmux, ACP and CLI orchestration. |
+| `hermes_cli/subcommands/remote_doctor.py`, `remote_workspaces.py` | Remote probes and validated client bookmarks. |
+| `tests/hermes_cli/test_remote_dev.py` | Standalone and process/argument/quoting contracts. |
+| `tests/hermes_cli/test_remote_ssh_integration.py`, `remote_ssh/Dockerfile`, `remote_ssh/stub.py` | Disposable real SSH/tmux fixture and transport tests. |
+| `tests/fixtures/resolution_allowlist.json` | Justified standalone VS Code lookup exemption. |
+| `.github/workflows/remote-development.yml` | Windows/Linux standalone and Linux container lane. |
+| `docs/REMOTE-DEVELOPMENT-RU.md`, `docs/REMOTE-DEVELOPMENT-AUDIT.md` | Installation, operations, architecture, review and validation limits. |
 
 ## Remaining acceptance checks and limits
 
