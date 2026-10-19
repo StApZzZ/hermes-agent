@@ -73,6 +73,7 @@ def _run(argv: Sequence[str], *, interactive: bool = False, env=None) -> int:
         child = subprocess.Popen(list(argv), env=env)
         for sig in (signal.SIGINT, signal.SIGTERM):
             previous[sig] = signal.signal(sig, interrupted)
+        # health: allow HX006 -- Interactive SSH/ACP lives until EOF; shutdown below is bounded.
         rc = child.wait()
         return 128 - rc if rc < 0 else rc
     except FileNotFoundError:
@@ -104,11 +105,7 @@ def _doctor(host: str, workspace: str, ssh_config: Path | None = None) -> int:
     return rc
 
 
-def _open(host: str, workspace: str, new_window: bool) -> int:
-    executable = shutil.which("code") or shutil.which("code.cmd")
-    if not executable:
-        print("VS Code CLI 'code' missing from PATH (run from PowerShell).", file=sys.stderr)
-        return 127
+def _vscode_command(executable: str) -> tuple[list[str], dict | None]:
     # A .cmd would pass remote path metacharacters through cmd.exe on Windows.
     # Use VS Code's own Node CLI entry point without a shell instead.
     env = None
@@ -117,12 +114,33 @@ def _open(host: str, workspace: str, new_window: bool) -> int:
         install = Path(executable).resolve().parent.parent
         electron = install / "Code.exe"
         cli = install / "resources" / "app" / "out" / "cli.js"
+        wrapper = Path(executable)
+        if wrapper.is_file():
+            # Recent VS Code installs put resources under a version directory.
+            # Read only the literal CLI path from the trusted installed wrapper;
+            # never execute it or expand batch variables supplied by a workspace.
+            match = re.search(r'"%~dp0\.\.[\\/](?P<cli>(?:[A-Za-z0-9_-]+[\\/])?resources[\\/]app[\\/]out[\\/]cli\.js)"',
+                              wrapper.read_text(encoding="utf-8-sig"), re.IGNORECASE)
+            if match:
+                cli = install.joinpath(*match["cli"].replace("\\", "/").split("/"))
         if not electron.is_file() or not cli.is_file():
-            print("Cannot locate Code.exe and resources/app/out/cli.js beside code.cmd. "
-                  "Install the standard VS Code distribution.", file=sys.stderr)
-            return 127
+            raise ValueError("Cannot locate Code.exe and the CLI JS declared by code.cmd; repair the VS Code install.")
         args = [str(electron), str(cli)]
         env = dict(os.environ, ELECTRON_RUN_AS_NODE="1")
+        env.pop("VSCODE_DEV", None)
+    return args, env
+
+
+def _open(host: str, workspace: str, new_window: bool) -> int:
+    executable = shutil.which("code") or shutil.which("code.cmd")
+    if not executable:
+        print("VS Code CLI 'code' missing from PATH (run from PowerShell).", file=sys.stderr)
+        return 127
+    try:
+        args, env = _vscode_command(executable)
+    except (OSError, ValueError) as exc:
+        print(f"VS Code: {exc}", file=sys.stderr)
+        return 127
     args += ["--remote", f"ssh-remote+{host}", workspace.rstrip("/") + "/"]
     if new_window:
         args.append("--new-window")

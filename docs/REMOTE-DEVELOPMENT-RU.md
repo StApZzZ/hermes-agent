@@ -107,7 +107,8 @@ hermes remote claude devbox --workspace /home/dev/projects/myproject
 ```
 
 VS Code открывает папку через `--remote ssh-remote+devbox`. На Windows launcher
-обходит `code.cmd`, вызывая `Code.exe` и штатный `resources/app/out/cli.js` напрямую:
+обходит исполнение `code.cmd`, вызывая `Code.exe` и штатный CLI JS напрямую
+(включая version-directory layout новых установок):
 путь с `&`, `%`, кавычками и пробелами не интерпретирует `cmd.exe`.
 
 Claude запускается в tmux на отдельном socket `hermes-remote`. Имя сессии

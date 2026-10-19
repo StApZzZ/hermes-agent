@@ -8,16 +8,11 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-# Remote development is a stdlib-only launcher and must not activate PM or
-# import the local agent runtime. All agent entry paths still bootstrap first.
-import sys
+# Remote orchestration must not activate PM or the local agent runtime.
+from hermes_cli import _startup_fast
 
-if sys.argv[1:2] == ["remote"]:
-    from hermes_cli._startup_fast import try_fast_remote
-
-    _remote_rc = try_fast_remote()
-    if _remote_rc is not None:
-        raise SystemExit(_remote_rc)
+if (_remote_rc := _startup_fast.try_fast_remote()) is not None:
+    raise SystemExit(_remote_rc)
 
 # hermes_bootstrap must be the first runtime import — it sets up UTF-8 stdio on
 # Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
@@ -55,8 +50,6 @@ import sys
 _bootstrap_root = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 if _bootstrap_root not in sys.path:
     sys.path.insert(0, _bootstrap_root)
-from hermes_cli import _startup_fast
-import itertools
 
 # A literal ``~``/``$VAR`` in HERMES_HOME (fish, or any quoted value) must become absolute
 # before the first reader — otherwise it resolves against cwd and scaffolds <cwd>/~/.hermes.
@@ -71,11 +64,7 @@ _startup_fast.normalize_hermes_home_env()
 # mentioning both words never arm a 300s hard-exit timer. Foreground runs arm
 # too — a pre-loop wedge is just as dead without a supervisor; GatewayRunner
 # disarms once the event loop is live.
-def _argv_is_gateway_run(argv: list) -> bool:
-    return any(a == "gateway" and b == "run" for a, b in itertools.pairwise(argv))
-
-
-if _argv_is_gateway_run(sys.argv[1:]):
+if _startup_fast.argv_is_gateway_run(sys.argv[1:]):
     try:
         from hermes_startup_watchdog import arm_startup_watchdog as _arm_sw
 

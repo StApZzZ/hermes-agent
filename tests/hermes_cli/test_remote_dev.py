@@ -202,7 +202,26 @@ def test_windows_vscode_batch_wrapper_is_bypassed(tmp_path, monkeypatch):
     assert kwargs["env"]["ELECTRON_RUN_AS_NODE"] == "1"
 
 
-def test_real_main_remote_dispatch_does_not_import_agent(tmp_path):
+def test_windows_vscode_versioned_cli_path(tmp_path):
+    install = tmp_path / "VS Code"
+    cli = install / "a1b2c3d4e5/resources/app/out/cli.js"
+    cli.parent.mkdir(parents=True)
+    cli.touch()
+    (install / "Code.exe").touch()
+    wrapper = install / "bin/code.cmd"
+    wrapper.parent.mkdir()
+    wrapper.write_text('@echo off\n"%~dp0..\\Code.exe" "%~dp0..\\a1b2c3d4e5\\resources\\app\\out\\cli.js" %*\n', encoding="utf-8")
+    argv, env = remote._vscode_command(str(wrapper))
+    assert argv == [str(install / "Code.exe"), str(cli)]
+    assert env["ELECTRON_RUN_AS_NODE"] == "1"
+
+
+@pytest.mark.parametrize("container_mode", [False, True])
+def test_real_main_remote_dispatch_does_not_import_agent(tmp_path, container_mode):
+    if container_mode:
+        home = Path(os.environ["HERMES_HOME"])
+        home.mkdir()
+        (home / ".container-mode").write_text("{}", encoding="utf-8")
     script = '''
 import importlib.abc, runpy, sys
 class BlockRuntime(importlib.abc.MetaPathFinder):
@@ -217,6 +236,14 @@ runpy.run_module('hermes_cli.main', run_name='__main__')
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["acp.agents"]["Hermes Remote"]["command"] == "ssh"
     assert result.stderr == ""
+
+
+@pytest.mark.parametrize("argv, expected", [(["gateway", "run"], True),
+    (["-p", "dev", "gateway", "run"], True), (["gateway", "status"], False),
+    (["gateway", "--help", "run"], False)])
+def test_gateway_watchdog_keeps_adjacent_argv_contract(argv, expected):
+    from hermes_cli._startup_fast import argv_is_gateway_run
+    assert argv_is_gateway_run(argv) is expected
 
 
 def test_standalone_script_works_from_other_directory(tmp_path):

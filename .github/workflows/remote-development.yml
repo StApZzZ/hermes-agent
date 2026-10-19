@@ -1,7 +1,5 @@
 name: Remote development
 on:
-  push:
-    branches: [feat/remote-development]
   pull_request:
     paths:
       - hermes_cli/subcommands/remote*.py

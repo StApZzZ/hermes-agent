@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import os
 import sys
+import itertools
 
 __all__ = [
     "active_profile_may_override_home",
@@ -41,6 +42,7 @@ __all__ = [
     "read_openai_version",
     "try_fast_version",
     "try_fast_remote",
+    "argv_is_gateway_run",
 ]
 
 
@@ -264,12 +266,17 @@ def try_fast_version(argv: list[str] | None = None) -> bool:
 def try_fast_remote(argv: list[str] | None = None) -> int | None:
     """Dispatch the standalone launcher before config, plugins or model imports.
 
-    Global profile/container routing keeps the regular parser's semantics.
-    Only the explicit ``hermes remote ...`` form takes this path.
+    Only the explicit ``hermes remote ...`` form takes this path. Its bookmarks
+    are client state: agent profiles/container mode must not move VS Code or
+    SSH into an agent's container or initialize a local runtime.
     """
     argv = sys.argv[1:] if argv is None else argv
-    if not argv or argv[0] != "remote" or container_mode_may_be_active():
+    if not argv or argv[0] != "remote":
         return None
     from hermes_cli.subcommands.remote import main
 
     return main(argv[1:])
+
+
+def argv_is_gateway_run(argv: list) -> bool:
+    return any(a == "gateway" and b == "run" for a, b in itertools.pairwise(argv))

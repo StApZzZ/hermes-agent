@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssh-server tmux git python3 procps \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* && rm -f /etc/ssh/ssh_host_* \
     && useradd -m -s /bin/sh dev && passwd -d dev \
     && mkdir -p /run/sshd /home/dev/.ssh /home/dev/projects \
     && chmod 700 /home/dev/.ssh && chown -R dev:dev /home/dev

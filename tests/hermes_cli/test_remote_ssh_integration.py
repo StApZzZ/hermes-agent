@@ -48,7 +48,15 @@ def server(tmp_path_factory):
         port = checked(["docker", "port", name, "22/tcp"]).decode().strip().rsplit(":", 1)[1]
         # Read the key from the container we started, not the network. SSH must
         # verify this exact host key; no StrictHostKeyChecking=no/accept-new.
-        hostkey = checked(["docker", "exec", name, "cat", "/etc/ssh/ssh_host_ed25519_key.pub"]).decode().split()
+        for _ in range(60):
+            ready = subprocess.run(["docker", "exec", name, "sh", "-c",
+                "test -r /run/sshd.pid && cat /etc/ssh/ssh_host_ed25519_key.pub"],
+                capture_output=True, timeout=20)
+            if ready.returncode == 0:
+                break
+        else:
+            pytest.fail("Test sshd did not start: " + checked(["docker", "logs", name]).decode())
+        hostkey = ready.stdout.decode().split()
         known = work / "known_hosts"
         known.write_text(f"[127.0.0.1]:{port} {hostkey[0]} {hostkey[1]}\n", encoding="utf-8")
         config = work / "config"
@@ -126,6 +134,20 @@ def test_ssh_failure_has_no_protocol_stdout(server, tmp_path):
     assert result.stdout == b"" and result.stderr
 
 
+def test_host_key_mismatch_is_rejected(server, tmp_path):
+    known = server.parent / "known_hosts"
+    identity = (server.parent / "identity.pub").read_text(encoding="utf-8").split()
+    wrong_known = tmp_path / "wrong_known_hosts"
+    address = known.read_text(encoding="utf-8").split()[0]
+    wrong_known.write_text(f"{address} {identity[0]} {identity[1]}\n", encoding="utf-8")
+    config = tmp_path / "wrong_config"
+    config.write_text(server.read_text(encoding="utf-8").replace(known.as_posix(), wrong_known.as_posix()), encoding="utf-8")
+    result = subprocess.run(cli(config, "acp", "/home/dev/projects"), input=b"", capture_output=True, timeout=20)
+    assert result.returncode == 255
+    assert result.stdout == b""
+    assert b"REMOTE HOST IDENTIFICATION HAS CHANGED" in result.stderr
+
+
 def wait_remote_file(server, path):
     # Each SSH roundtrip supplies the polling interval; no fixed sleep or
     # assumption about how fast the container/agent process starts.
@@ -157,6 +179,7 @@ def test_tmux_survives_disconnect_reconnect_and_project_switch(server, tmp_path)
             process.stdin.flush()
             wait_remote_file(server, workspace + "/.interrupted")
             name = remote._session_name("devbox", workspace, None, "claude")
+            old_clients = ssh(server, f"tmux -L hermes-remote list-clients -t ={name} -F '#{{client_pid}}'").stdout.splitlines()
             ssh(server, f"tmux -L hermes-remote resize-window -t ={name} -x 120 -y 40")
             wait_remote_file(server, workspace + "/.resized")
             process.terminate()
@@ -165,6 +188,11 @@ def test_tmux_survives_disconnect_reconnect_and_project_switch(server, tmp_path)
             reconnected = subprocess.Popen(cli(server, "claude", workspace), stdin=subprocess.PIPE,
                                           stdout=log, stderr=subprocess.STDOUT, env=env)
             processes.append(reconnected)
+            for _ in range(60):
+                clients = ssh(server, f"tmux -L hermes-remote list-clients -t ={name} -F '#{{client_pid}}'").stdout.splitlines()
+                if set(clients) - set(old_clients):
+                    break
+            assert set(clients) - set(old_clients)
             # Prove the reconnected client reaches the existing process.
             reconnected.stdin.write(b"after reconnect\n")
             reconnected.stdin.flush()
