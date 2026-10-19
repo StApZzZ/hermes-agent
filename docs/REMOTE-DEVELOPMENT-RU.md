@@ -187,13 +187,41 @@ NO_BROWSER=true gemini
 Gemini получает `NO_BROWSER=true` для штатной ручной авторизации на SSH-хосте.
 Отсоединение и повторное подключение к активному tmux вообще не требуют `--resume`.
 
-Эти команды не регистрируют CLI как model-provider Hermes. В проверенной версии
-Hermes есть опциональный [Codex app-server runtime](../website/docs/user-guide/features/codex-app-server-runtime.md),
-но его вспомогательные задачи могут обращаться к провайдеру напрямую. Аналогичных
-встроенных backend для Gemini CLI и Claude Code нет. Строгое требование «все
-запросы через три штатных CLI» таким образом не обеспечивает модель внутри Hermes.
-Чтобы Hermes не заимствовал CLI-токены для собственных запросов, на сервере можно
-отключить этот механизм:
+### Hermes поверх CLI (`codex-cli`, `claude-cli`, `gemini-cli`)
+
+Плагин `plugins/model-providers/cli-subscriptions` регистрирует три провайдера
+типа `external_process`. Hermes ведёт сессию, историю, память и **сам выполняет
+все инструменты**; CLI только генерирует следующий ответ модели под вашей
+подпиской. Через тот же клиент идут и вспомогательные запросы (заголовки,
+компрессия, vision-маршрутизация) — HTTP-клиент для этих провайдеров не создаётся.
+
+```sh
+hermes config set model.provider claude-cli   # или codex-cli / gemini-cli
+hermes config set model.default default       # модель по умолчанию самого CLI
+hermes -z "проверка" --provider codex-cli     # разовый запрос через другой CLI
+hermes auth status claude-cli                 # штатный статус входа CLI
+hermes auth add codex-cli                     # штатный вход: codex login --device-auth
+```
+
+Свойства и ограничения:
+
+- Токены не читаются и не копируются: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+  `GEMINI_API_KEY` и т. п. удаляются из окружения CLI, Codex принудительно
+  использует вход ChatGPT, Claude — claude.ai. Gemini в режиме API key/Vertex
+  отклоняется: переключите `gemini` → `/auth` → Sign in with Google.
+- Собственные инструменты CLI выключены (`--tools ""`/`--restricted`, Codex
+  read-only без shell, Gemini policy deny-all, без MCP).
+- Для Claude стабильная часть (system prompt Hermes + контракт инструментов)
+  передаётся через `--system-prompt-file`, поэтому кэшируется: в проверке доля
+  cache read 94–96 % против 7 % при передаче всего через stdin.
+- Ошибки CLI (например, исчерпанный лимит подписки) показываются текстом самого
+  CLI; stderr не выводится, так как там могут быть device-коды.
+- Только текст: изображения/аудио отклоняются явно. Контекст по умолчанию
+  считается 256k; при необходимости задайте `model.context_length`.
+- После обновления кода остановите фоновый gateway (`hermes gateway stop`),
+  иначе `hermes -z` продолжит обслуживаться старым процессом.
+
+Чтобы Hermes не заимствовал CLI-токены для **других** провайдеров:
 
 ```sh
 hermes config set auth.adopt_external_logins false
@@ -280,3 +308,63 @@ CI `remote-development.yml` проверяет Windows/Linux и SSH-контей
 Реальный VS Code UI, extension-host placement и авторизованный Claude/Hermes —
 отдельная приёмка; transport-тест их не доказывает.
 Подробности: [аудит](REMOTE-DEVELOPMENT-AUDIT.md).
+
+## 8. Закрытие сервера
+
+`scripts/remote-dev/harden-server.sh` (запуск от root на сервере) оставляет
+единственную входящую дверь — SSH по ключу с адресов из allowlist (выходные IP
+вашего VPN):
+
+- nftables, отдельная таблица `inet hermes_fw`: input/forward `policy drop`,
+  разрешены loopback, ответы на исходящие соединения, `tcp/22` и ping только из
+  allowlist, IPv6 ND. Исходящий трафик открыт (CLI, git, пакеты).
+- sshd: только `publickey`, `AllowUsers <admin> root`, root без пароля, без
+  agent/X11/tunnel/remote-forwarding; local forwarding оставлен для VS Code.
+- cloud-init `ssh_pwauth: false`, учётка `tmpuser` из образа заблокирована,
+  unattended security upgrades, базовые sysctl.
+
+```sh
+scp scripts/remote-dev/harden-server.sh root@<server>:/root/
+ssh root@<server> /root/harden-server.sh apply --allow <vpn-exit-ip> [--allow <ip2>] --admin-user hermes
+# В НОВОЙ SSH-сессии, в течение 5 минут, иначе произойдёт автоматический откат:
+ssh root@<server> /usr/local/sbin/hermes-hardening confirm
+```
+
+Сменить allowlist — повторить `apply` с новым набором `--allow` и снова `confirm`;
+полный откат — `hermes-hardening rollback`. Если VPN недоступен, вход возможен
+только с другого адреса из allowlist или через консоль VNC провайдера.
+Не ставьте Docker поверх этой таблицы без пересмотра правил: forward закрыт.
+
+## 9. Резервные копии
+
+`scripts/remote-dev/backup-pull.sh [--force] [ssh-alias]` запускается на локальной
+машине (WSL) и кладёт архив в `server-backups/<alias>/` внутри checkout —
+каталог в `.gitignore`, права 700. В архив входят `~/.hermes` (config, `.env`,
+SOUL, память, skills, cron, kanban, сессии), конфиги и история Claude/Codex/Gemini,
+`~/repos` и `~/work` с `.git`, а также `BACKUP-MANIFEST.txt` (ветка, HEAD, число
+незакоммиченных и непушнутых изменений по каждому репозиторию) и копии
+`/etc/nftables.conf` и sshd drop-ins. SQLite копируется через backup API, поэтому
+снимок консистентен при работающем gateway.
+
+Не входят: пересобираемые `~/.hermes/tools|cache|installs`, пакеты CLI,
+`node_modules`/venv и OAuth-токены CLI — после восстановления выполните штатный
+вход в каждый CLI. Один архив в сутки (`--force` — внеплановый), хранятся 14
+последних (`KEEP=N`). Журнал — `server-backups/<alias>/backup.log`.
+
+Расписание в Windows (при входе в систему и ежедневно; пропущенный запуск
+выполняется при первой возможности, нужен поднятый VPN):
+
+```powershell
+# conhost --headless: без консольного окна на время выгрузки.
+$a = New-ScheduledTaskAction -Execute conhost.exe -Argument '--headless wsl.exe -d Ubuntu -- bash -lc "~/repos/hermes-agent/scripts/remote-dev/backup-pull.sh"'
+$t = @((New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"), (New-ScheduledTaskTrigger -Daily -At 13:00))
+$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'Hermes server backup' -Action $a -Trigger $t -Settings $s
+```
+
+Восстановление на чистом сервере под пользователем Hermes:
+
+```sh
+sha256sum -c <stamp>.tar.gz.sha256
+tar -xzf <stamp>.tar.gz -C ~        # затем codex/claude/gemini login
+```

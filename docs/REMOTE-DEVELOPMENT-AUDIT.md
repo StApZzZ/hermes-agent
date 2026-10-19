@@ -109,15 +109,47 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
   server workspace via Windows launchers and detached successfully from tmux.
   No account login or model edit was performed in those smoke checks.
 - The owner requires subscription access through official CLIs. Hermes'
-  `auth.adopt_external_logins` was explicitly disabled on the deployment.
-  Launching the three agents is supported; their use as interchangeable Hermes
-  model backends is not implemented. Existing Codex app-server has direct
-  auxiliary model calls; no Gemini CLI/Claude Code execution backend was found.
-- Claude reports `loggedIn: false`; no provider credentials were copied. Real
-  Claude edits, Hermes model turns, history/resume and ACP client UI acceptance
-  require remote authentication/provider selection.
+  `auth.adopt_external_logins` was explicitly disabled on the deployment; the
+  CLIs became Hermes model backends later (section below).
 - Full Hermes suite and PM-managed whole-repository checks were not run; the
   standalone lane and scoped health/Ruff checks do not represent those suites.
+
+### Hermes over the subscription CLIs (signed-in acceptance)
+
+- The `cli-subscriptions` model-provider plugin registers `codex-cli`,
+  `claude-cli` and `gemini-cli` (`external_process`). Main turns and every
+  auxiliary route resolve through the same `SubscriptionCLIClient`; an
+  external-process profile that fails to build its client raises instead of
+  falling back to an HTTP client.
+- Real Claude Code 2.1.292 (claude.ai team subscription), Hermes as the agent:
+  a one-shot turn read a random nonce from a file with Hermes' own file tool and
+  wrote it reversed into a new file (verified byte-for-byte); title generation
+  logged `Auxiliary title_generation: using claude-cli`. Native CLI tools stay off.
+- Prompt caching: the stable prefix (Hermes system prompt + tool contract) now
+  goes to Claude via `--system-prompt-file`; cache read rose from 7 % to 94–96 %
+  of input tokens on consecutive calls of one session. Codex/Gemini receive the
+  same stable prefix first on stdin for their automatic prefix caching.
+- Real Codex CLI 0.163.0 is signed in (ChatGPT) but its plan was at its usage
+  limit; the turn now surfaces Codex's own message and is classified as rate
+  limited (previously a bare "exit code 1"). A Codex model answer remains to be
+  observed after the limit resets.
+- Real Gemini CLI 0.64.0 has "Gemini API key" selected; Hermes refuses it with an
+  instruction to choose Sign in with Google. A Gemini model answer remains to be
+  observed after that switch.
+- `hermes auth add|status|logout <engine>-cli` run the CLI's own account commands
+  (inherited terminal, API-key variables removed); Hermes stores no tokens.
+- `python scripts/check --base origin/main`: 12/12 checks pass. Related suites
+  (`tests/plugins`, `tests/providers`, auxiliary client, provider seam, CLI
+  client, remote dev, Copilot ACP): 1882 passed, 0 failed, 4 skipped.
+
+### Server hardening and backups
+
+- `scripts/remote-dev/harden-server.sh` was applied to the deployment with a
+  5-minute automatic rollback, then confirmed from new SSH sessions (WSL and
+  Windows). Inbound is `policy drop` except key-only SSH from the VPN exit
+  allowlist; password login is refused (`Permission denied (publickey)`).
+- `scripts/remote-dev/backup-pull.sh` pulls a consistent daily snapshot into the
+  gitignored `server-backups/`; a Windows scheduled task runs it at logon and daily.
 
 The authoring checkout was moved to WSL `~/repos/hermes-agent` at the owner's
 request. A separate three-file Windows launcher runs production SSH operations
@@ -135,6 +167,12 @@ Terraform project, outside this public PR.
 | `tests/hermes_cli/test_remote_ssh_integration.py`, `remote_ssh/Dockerfile`, `remote_ssh/stub.py` | Disposable real SSH/tmux fixture and transport tests. |
 | `tests/fixtures/resolution_allowlist.json` | Justified standalone VS Code lookup exemption. |
 | `.github/workflows/remote-development.yml` | Windows/Linux standalone and Linux container lane. |
+| `plugins/model-providers/cli-subscriptions/` | `codex-cli`/`claude-cli`/`gemini-cli` profiles and native-login `auth_handler`. |
+| `agent/cli_subscription_client.py`, `agent/cli_subscription_process.py` | OpenAI-shaped client over one-shot CLI processes: prompt split, argv, env scrubbing, result/error decoding, process-tree cleanup. |
+| `agent/agent_runtime_provider_clients.py`, `agent/agent_runtime_helpers.py`, `agent/auxiliary_client.py` | Provider-supplied client seam moved to a sibling; external-process profiles never fall back to HTTP. |
+| `tests/agent/test_cli_subscription_client.py`, `tests/agent/fixtures/subscription_cli.py`, `tests/plugins/test_cli_subscription_auth.py`, `tests/agent/test_provider_client_seam.py` | Real child-process contracts for the three wire formats, caching split, errors, auth commands. |
+| `scripts/remote-dev/` | Server hardening with auto-rollback; consistent backup snapshot and local pull. |
+| `.gitignore` | `/server-backups/`. |
 | `docs/REMOTE-DEVELOPMENT-RU.md`, `docs/REMOTE-DEVELOPMENT-AUDIT.md` | Installation, operations, architecture, review and validation limits. |
 
 ## Remaining acceptance checks and limits
@@ -146,6 +184,10 @@ disposable project. Transport-level same-PID reconnect, Ctrl+C and resize passed
 with fixture agents; physical terminal/UI acceptance remains separate. Inspect
 the production process trees/cache locations: no local agent/runtime/build or
 WSL should be started by the Windows launcher.
+
+The SSH allowlist is the VPN's shared exit address, so other users of that exit
+can reach the key-only SSH port; a dedicated private tunnel from the VPN ingress
+to the server would remove that, and needs a change on the VPN host itself.
 
 tmux does not survive reboot/OOM. ACP in-flight generation need not survive
 disconnect. Shell banners can corrupt stdio. Alias/symlink spellings form distinct
