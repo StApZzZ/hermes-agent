@@ -65,27 +65,51 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
 ## Validation
 
 - Original MVP: 7/7 isolated tests passed on native Windows before changes.
-- Revised standalone: 41 passed on native Windows via `scripts/run_tests.sh`.
-  Includes real subprocess bytes/exit, standalone script from another cwd and
-  actual main dispatch with forbidden PM/model/config/agent imports.
+- Revised standalone: 41 passed on native Windows via `scripts/run_tests.sh`,
+  including a repeat after completing the WSL source checkout. Includes real
+  subprocess bytes/exit, standalone script from another cwd and actual main
+  dispatch with forbidden PM/model/config/agent imports.
 - Existing startup import-weight and command-resolution guards: 2 passed.
 - Replayed the original MVP and revised launcher with the same inputs: default
   cross-project tmux collision and code.cmd execution reproduce on the MVP and
   are absent in the revised commands.
-- Installed VS Code 1.142.0: native executable/CLI JS `--version` returned 0,
-  expected version output, and empty stderr; no window/remote server was opened.
-- Scoped `scripts/check --only health,ruff --base <MVP>` passed with pinned Ruff
-  0.15.10; Windows footgun scan passed. The complete snapshot check could not
-  materialize this partial clone because GitHub blob fetches timed out.
-- Local Docker daemon is not running: 5 container tests skipped locally.
-- Dedicated CI runs Windows/Linux contracts and Linux container integration.
-  Runs are queued on GitHub at reporting time; check PR #1 for final results.
-- Full Hermes suite and PM-managed code-health checks are not represented by
-  the standalone lane; they require a complete Hermes dev/test environment.
-- A dedicated target was supplied after local validation. Its SSH service is
-  reachable, but it currently rejects the designated public key; live acceptance
-  is pending SSH authorization. Unrelated SSH hosts were not used. Real VS Code
-  UI, actual Hermes ACP with model/provider and authenticated Claude are unverified.
+- [CI run 39285080430](https://github.com/StApZzZ/hermes-agent/actions/runs/39285080430)
+  at `99f2d23`: Windows/Linux standalone contracts passed; all 5 Linux Docker
+  SSH/tmux integration cases passed. The local Docker daemon was unavailable.
+- The same 5 integration cases also passed through native Windows OpenSSH to
+  a newly provisioned Ubuntu 24.04 VM (94.9 seconds). Only the server fixture
+  was substituted in a temporary copy: dedicated `dev` account, pinned host key,
+  unchanged test bodies and fixture agents. Tested Unicode/quoting, ACP frames,
+  stderr/EOF/exit, missing tools/workspace, refused connection, changed host key,
+  Ctrl+C, resize, two projects and reconnect to the same agent PID. The test
+  account and its files were removed afterwards. This does not prove LLM edits.
+- Full source checkout code-health/Ruff checks against the MVP passed with
+  pinned Ruff 0.15.10 (0 blocking/advisory health findings). Completing the
+  checkout exposed export-order/explicit-subprocess-status rules absent from
+  the earlier partial-tree run; those were fixed. Windows footgun scan passed.
+- Installed VS Code 1.142.0: native executable/CLI JS `--version` returned 0.
+  `remote open` started Remote-SSH; after an initial bootstrap failure, its log
+  confirmed the exec server connection and installed VS Code Server on Linux.
+  ACP Client 0.2.0 was installed in the server extension directory; user settings
+  pin it to the workspace extension host and remote settings use the absolute
+  Hermes launcher. Physical UI inspection and extension activation remain pending.
+- Real runtime installed as an unprivileged Linux user from `99f2d23` using
+  the official Hermes installer; native Claude Code stable is 2.1.292.
+  Windows `remote doctor` returned 0, including real `hermes acp --check`.
+- The real Windows ACP bridge completed Hermes `initialize` (protocol 1) and
+  `session/new`, then stdin EOF with exit 0. Protocol stdout contained only JSON
+  frames; diagnostic stderr remained separate. This test made no model request.
+  Hermes' existing shared gateway may remain with `--idle-exit` by design.
+- Claude reports `loggedIn: false`; no provider credentials were copied. Real
+  Claude edits, Hermes model turns, history/resume and ACP client UI acceptance
+  require remote authentication/provider selection.
+- Full Hermes suite and PM-managed whole-repository checks were not run; the
+  standalone lane and scoped health/Ruff checks do not represent those suites.
+
+The authoring checkout was moved to WSL `~/repos/hermes-agent` at the owner's
+request. A separate three-file Windows launcher runs production SSH operations
+without WSL. Infrastructure identifiers/access notes remain in the private
+Terraform project, outside this public PR.
 
 ## Changed files
 
@@ -102,15 +126,17 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
 
 ## Remaining acceptance checks and limits
 
-Open a remote folder and verify Explorer/Git/search/debugger. Check ACP extension
-host placement, real initialize/session/file edit and persisted history. Authenticate
-Claude on Linux, edit a disposable project, disconnect/reconnect to the same PID,
-and exercise physical Ctrl+C/window resizing. Inspect Windows/Linux process trees
-and remote cache locations; no local agent/runtime/build or WSL should be started.
+Visually verify the remote folder's Explorer/Git/search/debugger and ACP extension
+activation/host placement. Authenticate Claude on Linux and configure Hermes'
+provider; verify real model-driven file edits and persisted/resumed history in a
+disposable project. Transport-level same-PID reconnect, Ctrl+C and resize passed
+with fixture agents; physical terminal/UI acceptance remains separate. Inspect
+the production process trees/cache locations: no local agent/runtime/build or
+WSL should be started by the Windows launcher.
 
 tmux does not survive reboot/OOM. ACP in-flight generation need not survive
 disconnect. Shell banners can corrupt stdio. Alias/symlink spellings form distinct
 session identities. Windows requires a recognizable VS Code wrapper/CLI layout. Doctor
 thresholds are heuristics, not workload sizing, and do not fully resolve ancestor
-cgroups/quotas. A pure-native Windows launcher and real UI/model canaries remain
-possible follow-ups, not implemented/verified claims.
+cgroups/quotas. A launcher without local Python and authenticated UI/model canaries
+remain possible follow-ups, not implemented/verified claims.

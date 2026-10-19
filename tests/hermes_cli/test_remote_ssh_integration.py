@@ -29,7 +29,7 @@ def checked(argv, **kwargs):
 def server(tmp_path_factory):
     if shutil.which("docker") is None:
         pytest.skip("Docker is required for the disposable SSH server")
-    probe = subprocess.run(["docker", "info"], capture_output=True, timeout=20)
+    probe = subprocess.run(["docker", "info"], capture_output=True, timeout=20, check=False)
     if probe.returncode:
         pytest.skip("Docker daemon is unavailable")
     work = tmp_path_factory.mktemp("remote-ssh")
@@ -51,7 +51,7 @@ def server(tmp_path_factory):
         for _ in range(60):
             ready = subprocess.run(["docker", "exec", name, "sh", "-c",
                 "test -r /run/sshd.pid && cat /etc/ssh/ssh_host_ed25519_key.pub"],
-                capture_output=True, timeout=20)
+                capture_output=True, timeout=20, check=False)
             if ready.returncode == 0:
                 break
         else:
@@ -94,7 +94,7 @@ def test_acp_real_ssh_roundtrip_eof_and_exit(server):
                 {"jsonrpc": "2.0", "id": 2, "method": "session/new", "params": {"cwd": workspace}},
                 {"jsonrpc": "2.0", "id": 3, "method": "fixture/echo", "params": {"text": "Привет" * 10000}}]
     payload = b"".join(json.dumps(row, ensure_ascii=False).encode() + b"\n" for row in requests)
-    result = subprocess.run(cli(server, "acp", workspace), input=payload, capture_output=True, timeout=30)
+    result = subprocess.run(cli(server, "acp", workspace), input=payload, capture_output=True, timeout=30, check=False)
     assert result.returncode == 0, result.stderr
     responses = [json.loads(line) for line in result.stdout.splitlines()]
     assert len(responses) == 3
@@ -104,16 +104,16 @@ def test_acp_real_ssh_roundtrip_eof_and_exit(server):
     assert b"ACP fixture diagnostic" in result.stderr
     ssh(server, "test ! -e /tmp/injected && test -f " + shlex.quote(workspace + "/.acp-closed"))
     payload = b'{"jsonrpc":"2.0","id":9,"method":"fixture/exit"}\n'
-    exited = subprocess.run(cli(server, "acp", workspace), input=payload, capture_output=True, timeout=30)
+    exited = subprocess.run(cli(server, "acp", workspace), input=payload, capture_output=True, timeout=30, check=False)
     assert exited.returncode == 19
     assert exited.stdout == b""
 
 
 def test_doctor_real_tools_missing_workspace_and_tools(server):
-    good = subprocess.run(cli(server, "doctor", "/home/dev/projects"), capture_output=True, timeout=30)
+    good = subprocess.run(cli(server, "doctor", "/home/dev/projects"), capture_output=True, timeout=30, check=False)
     assert good.returncode == 0, good.stdout + good.stderr
     assert b"SSH: OK" in good.stdout and b"Cgroup limits" in good.stdout
-    missing = subprocess.run(cli(server, "doctor", "/does-not-exist"), capture_output=True, timeout=30)
+    missing = subprocess.run(cli(server, "doctor", "/does-not-exist"), capture_output=True, timeout=30, check=False)
     assert missing.returncode == 1 and b"Workspace missing" in missing.stdout
     # A private PATH hides the development tools without mutating them.
     from hermes_cli.subcommands.remote_doctor import doctor_script
@@ -129,7 +129,7 @@ def test_ssh_failure_has_no_protocol_stdout(server, tmp_path):
     bad = tmp_path / "bad-config"
     bad.write_text('Host devbox\n HostName 127.0.0.1\n Port 1\n BatchMode yes\n', encoding="utf-8")
     argv = cli(bad, "acp", "/home/dev/projects")
-    result = subprocess.run(argv, input=b"", capture_output=True, timeout=20)
+    result = subprocess.run(argv, input=b"", capture_output=True, timeout=20, check=False)
     assert result.returncode == 255
     assert result.stdout == b"" and result.stderr
 
@@ -142,7 +142,7 @@ def test_host_key_mismatch_is_rejected(server, tmp_path):
     wrong_known.write_text(f"{address} {identity[0]} {identity[1]}\n", encoding="utf-8")
     config = tmp_path / "wrong_config"
     config.write_text(server.read_text(encoding="utf-8").replace(known.as_posix(), wrong_known.as_posix()), encoding="utf-8")
-    result = subprocess.run(cli(config, "acp", "/home/dev/projects"), input=b"", capture_output=True, timeout=20)
+    result = subprocess.run(cli(config, "acp", "/home/dev/projects"), input=b"", capture_output=True, timeout=20, check=False)
     assert result.returncode == 255
     assert result.stdout == b""
     assert b"REMOTE HOST IDENTIFICATION HAS CHANGED" in result.stderr

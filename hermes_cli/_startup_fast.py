@@ -30,6 +30,7 @@ import itertools
 
 __all__ = [
     "active_profile_may_override_home",
+    "argv_is_gateway_run",
     "container_mode_may_be_active",
     "ensure_project_root_on_path",
     "is_container_startup_environment",
@@ -40,9 +41,8 @@ __all__ = [
     "project_root_str",
     "read_install_method",
     "read_openai_version",
-    "try_fast_version",
     "try_fast_remote",
-    "argv_is_gateway_run",
+    "try_fast_version",
 ]
 
 

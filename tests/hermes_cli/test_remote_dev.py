@@ -232,7 +232,7 @@ sys.meta_path.insert(0, BlockRuntime())
 sys.argv = ['hermes', 'remote', 'config', 'devbox', '--workspace', '/srv/repo', '--proxy']
 runpy.run_module('hermes_cli.main', run_name='__main__')
 '''
-    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=20)
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=20, check=False)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["acp.agents"]["Hermes Remote"]["command"] == "ssh"
     assert result.stderr == ""
@@ -249,6 +249,6 @@ def test_gateway_watchdog_keeps_adjacent_argv_contract(argv, expected):
 def test_standalone_script_works_from_other_directory(tmp_path):
     script = Path(remote.__file__).resolve()
     result = subprocess.run([sys.executable, str(script), "config", "devbox", "--workspace", "/srv/repo"],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20, check=False)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["acp.agents"]["Hermes Remote"]["args"] == ["acp"]
