@@ -157,7 +157,10 @@ def _session_name(host: str, workspace: str, session: str | None, agent: str) ->
 
 def _terminal_agent(host: str, workspace: str, *, tmux: bool, session: str | None,
                     resume: bool, agent: str = "claude", ssh_config: Path | None = None) -> int:
-    agent_cmd = agent + (" --resume" if resume else "")
+    resume_arg = " resume" if agent == "codex" else " --resume"
+    agent_cmd = agent + (resume_arg if resume else "")
+    if agent == "gemini":
+        agent_cmd = "env NO_BROWSER=true " + agent_cmd
     prefix = 'export PATH="$HOME/.local/bin:$PATH"; '
     if tmux:
         name = _session_name(host, workspace, session, agent)
@@ -217,12 +220,12 @@ def run_remote(args) -> int:
             return _doctor(host, workspace, args.ssh_config)
         if args.remote_action == "open":
             return _open(host, workspace, args.new_window)
-        if args.remote_action in {"claude", "start"}:
+        if args.remote_action in {"claude", "codex", "gemini", "start"}:
             return _terminal_agent(host, workspace,
                 tmux=target.get("tmux", True) if args.no_tmux is None else not args.no_tmux,
                 session=args.session or target.get("session"),
                 resume=args.resume,
-                agent="claude" if args.remote_action == "claude" else target.get("agent", "hermes"),
+                agent=target.get("agent", "hermes") if args.remote_action == "start" else args.remote_action,
                 ssh_config=args.ssh_config)
         if args.remote_action == "acp":
             return _acp(host, workspace, args.ssh_config)
@@ -246,6 +249,8 @@ def build_remote_parser(subparsers) -> None:
         ("doctor", "Check SSH, development tools, RAM and disk"),
         ("open", "Open the remote project in the local VS Code GUI"),
         ("claude", "Run Claude Code CLI on the SSH host"),
+        ("codex", "Run Codex CLI on the SSH host"),
+        ("gemini", "Run Gemini CLI on the SSH host"),
         ("start", "Run the saved workspace's preferred agent in tmux"),
         ("acp", "Proxy raw ACP stdio to remote Hermes"),
         ("config", "Print VS Code ACP Client JSON settings"),
@@ -258,12 +263,12 @@ def build_remote_parser(subparsers) -> None:
         sub.set_defaults(func=run_remote)
         if action == "open":
             sub.add_argument("--new-window", action="store_true")
-        if action in {"claude", "start"}:
+        if action in {"claude", "codex", "gemini", "start"}:
             sub.add_argument("--no-tmux", action="store_true", default=None,
                              help="Use a disposable SSH TTY")
             sub.add_argument("--session", help="Session label (workspace hash is always appended)")
             sub.add_argument("--resume", action="store_true",
-                             help="Open Claude's session picker")
+                             help="Resume saved history using the selected agent's native behavior")
         if action == "config":
             sub.add_argument("--proxy", action="store_true",
                              help="Run Hermes via a local SSH ACP proxy")

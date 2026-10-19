@@ -28,22 +28,25 @@ dependency, HTTP endpoint or daemon is added.
 2. Doctor's last `df` exit status hid missing tools/workspace. Accumulate failures,
    print remediation, inspect ACP runtime, swap/inodes/ulimit/cgroups. System Node
    is optional with native Claude; Hermes owns its managed Python runtime.
-3. MVP parser registration was correct. However `remote` was missing from the
+3. Native subscription CLIs are separate agents: add `remote codex/gemini`
+   and matching bookmark choices alongside Claude/Hermes. Preserve each CLI's
+   resume syntax; Gemini uses its manual browserless authentication flow.
+4. MVP parser registration was correct. However `remote` was missing from the
    built-in/session-token sets and passed through runtime bootstrap/config.
    Add it to both sets and dispatch normal remote calls before runtime imports.
-4. Windows `code.cmd` exposed remote paths to cmd.exe interpretation. Invoke
+5. Windows `code.cmd` exposed remote paths to cmd.exe interpretation. Invoke
    Code.exe and its CLI JS with an argv array instead. The trusted wrapper's
    literal path also supports the version-directory layout observed in VS Code
    1.142.0 on the Windows host.
-5. A bare subprocess wait gave weak cancellation cleanup. Inherit binary OS
+6. A bare subprocess wait gave weak cancellation cleanup. Inherit binary OS
    handles; terminate/wait/kill on launcher shutdown, preserve interactive SIGINT
    and child exit codes. Export PATH and quote nested remote shell commands.
-6. Validate paths/control characters, session names and strict bookmark schemas.
+7. Validate paths/control characters, session names and strict bookmark schemas.
    Reject parent traversal instead of rewriting paths across symlinks.
-7. Emit native SSH config for local ACP, explicit Linux cwd, strict host-key/batch
+8. Emit native SSH config for local ACP, explicit Linux cwd, strict host-key/batch
    options, keepalives, no forwarding/SSH escape parsing. No local Python required
    for that generated bridge.
-8. Add saved bookmarks and list/start with explicit config paths. This is data-only
+9. Add saved bookmarks and list/start with explicit config paths. This is data-only
    client state, not a second server workspace/session database.
 
 ## IDE compatibility
@@ -65,7 +68,7 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
 ## Validation
 
 - Original MVP: 7/7 isolated tests passed on native Windows before changes.
-- Revised standalone: 41 passed on native Windows via `scripts/run_tests.sh`,
+- Revised standalone: 45 passed on native Windows via `scripts/run_tests.sh`,
   including a repeat after completing the WSL source checkout. Includes real
   subprocess bytes/exit, standalone script from another cwd and actual main
   dispatch with forbidden PM/model/config/agent imports.
@@ -100,6 +103,16 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
   `session/new`, then stdin EOF with exit 0. Protocol stdout contained only JSON
   frames; diagnostic stderr remained separate. This test made no model request.
   Hermes' existing shared gateway may remain with `--idle-exit` by design.
+- Codex CLI 0.163.0 and Gemini CLI 0.64.0 were also installed remotely.
+  Built Gemini's native node-pty dependency (npm 12 initially blocked its install
+  script); an actual terminal spawn passed. All three native CLIs started in the
+  server workspace via Windows launchers and detached successfully from tmux.
+  No account login or model edit was performed in those smoke checks.
+- The owner requires subscription access through official CLIs. Hermes'
+  `auth.adopt_external_logins` was explicitly disabled on the deployment.
+  Launching the three agents is supported; their use as interchangeable Hermes
+  model backends is not implemented. Existing Codex app-server has direct
+  auxiliary model calls; no Gemini CLI/Claude Code execution backend was found.
 - Claude reports `loggedIn: false`; no provider credentials were copied. Real
   Claude edits, Hermes model turns, history/resume and ACP client UI acceptance
   require remote authentication/provider selection.

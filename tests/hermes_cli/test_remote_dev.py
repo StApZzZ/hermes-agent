@@ -134,6 +134,26 @@ def test_saved_workspace_and_overrides(tmp_path, monkeypatch, capsys):
     assert "tmux" not in called[0][-1]
 
 
+@pytest.mark.parametrize("agent,resume_command", [
+    ("codex", "codex resume"), ("gemini", "env NO_BROWSER=true gemini --resume")])
+@pytest.mark.parametrize("action", ["direct", "saved"])
+def test_subscription_cli_uses_its_own_resume_syntax(tmp_path, monkeypatch, agent, resume_command, action):
+    config = tmp_path / "workspaces.json"
+    config.write_text(json.dumps({"project": {"host": "devbox", "workspace": "/srv/project",
+                                              "agent": agent}}), encoding="utf-8")
+    called = []
+    monkeypatch.setattr(remote, "_run", lambda argv, **kw: called.append(argv) or 0)
+    argv = [agent, "devbox", "--workspace", "/srv/project"] if action == "direct" else [
+        "start", "project", "--config", str(config)]
+    assert remote.main([*argv, "--resume"]) == 0
+    assert called[0][:2] == ["ssh", "-tt"]
+    assert "new-session -A" in called[0][-1]
+    assert "exec " + resume_command in called[0][-1]
+    own = remote._session_name("devbox", "/srv/project", None, agent)
+    assert own in called[0][-1]
+    assert own != remote._session_name("devbox", "/srv/project", None, "claude")
+
+
 @pytest.mark.parametrize("contents", ['[]', '{', '{"x":{"host":"devbox"}}',
     '{"x":{"host":"devbox","workspace":"/srv","agent":"shell"}}',
     '{"x":{"host":"devbox","workspace":"/srv","tmux":"false"}}',

@@ -36,8 +36,8 @@ def _validate_entry(name, entry):
         raise ValueError(f"Invalid fields in workspace {name!r}; allowed: host, workspace, agent, session, tmux")
     _checked_host(entry.get("host"))
     _checked_workspace(entry.get("workspace"))
-    if entry.get("agent", "hermes") not in {"hermes", "claude"}:
-        raise ValueError(f"Workspace {name!r}: agent must be hermes or claude")
+    if entry.get("agent", "hermes") not in {"hermes", "claude", "codex", "gemini"}:
+        raise ValueError(f"Workspace {name!r}: agent must be hermes, claude, codex or gemini")
     if "tmux" in entry and not isinstance(entry["tmux"], bool):
         raise ValueError(f"Workspace {name!r}: tmux must be boolean")
     if "session" in entry and (not isinstance(entry["session"], str)

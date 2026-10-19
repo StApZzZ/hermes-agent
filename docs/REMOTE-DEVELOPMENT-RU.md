@@ -104,6 +104,8 @@ function hermes {
 hermes remote doctor devbox --workspace /home/dev/projects/myproject
 hermes remote open devbox --workspace /home/dev/projects/myproject --new-window
 hermes remote claude devbox --workspace /home/dev/projects/myproject
+hermes remote codex devbox --workspace /home/dev/projects/myproject
+hermes remote gemini devbox --workspace /home/dev/projects/myproject
 ```
 
 VS Code открывает папку через `--remote ssh-remote+devbox`. На Windows launcher
@@ -152,11 +154,50 @@ hermes remote start myproject
 hermes remote claude myproject --session feature2
 ```
 
-`start` использует предпочтительный `agent` (`hermes` по умолчанию); `claude` всегда
-запускает Claude. `--workspace`/`--session` переопределяют закладку. `--config PATH`
+`start` использует предпочтительный `agent`: `hermes` (по умолчанию), `claude`,
+`codex` или `gemini`. Одноимённые команды всегда запускают выбранный CLI.
+`--workspace`/`--session` переопределяют закладку. `--config PATH`
 выбирает другой JSON. Неизвестные поля и неверные типы — ошибка. `--ssh-config PATH`
 передаёт OpenSSH `-F`; для VS Code отдельно настройте `remote.SSH.configFile`.
 Закладки не синхронизируют серверную БД Projects и файлы проекта.
+
+## CLI и подписки
+
+Все три штатных CLI можно запускать на Linux под собственной подпиской.
+Установите Codex и Gemini на сервере с Node.js 20+:
+
+```sh
+npm install --global @openai/codex @google/gemini-cli
+codex login --device-auth
+claude auth login --claudeai
+NO_BROWSER=true gemini
+# В Gemini выберите Sign in with Google и аккаунт своей подписки.
+```
+
+Вход выполняется пользователем в браузере; коды и токены не нужно отправлять в чат.
+Для Codex device login может понадобиться включить его в настройках аккаунта;
+альтернатива — обычный `codex login` через SSH tunnel localhost:1455.
+Источники: [Codex auth](https://developers.openai.com/codex/auth/),
+[Gemini auth](https://geminicli.com/docs/get-started/authentication/),
+[Claude auth](https://code.claude.com/docs/en/authentication).
+
+Команды `remote claude/codex/gemini` запускают соответствующий агент в tmux;
+его история и авторизация принадлежат штатному CLI на сервере. `--resume` использует
+`claude --resume`, `codex resume`, а для Gemini — `gemini --resume` (последняя сессия).
+Gemini получает `NO_BROWSER=true` для штатной ручной авторизации на SSH-хосте.
+Отсоединение и повторное подключение к активному tmux вообще не требуют `--resume`.
+
+Эти команды не регистрируют CLI как model-provider Hermes. В проверенной версии
+Hermes есть опциональный [Codex app-server runtime](../website/docs/user-guide/features/codex-app-server-runtime.md),
+но его вспомогательные задачи могут обращаться к провайдеру напрямую. Аналогичных
+встроенных backend для Gemini CLI и Claude Code нет. Строгое требование «все
+запросы через три штатных CLI» таким образом не обеспечивает модель внутри Hermes.
+Чтобы Hermes не заимствовал CLI-токены для собственных запросов, на сервере можно
+отключить этот механизм:
+
+```sh
+hermes config set auth.adopt_external_logins false
+```
 
 ## 6. Hermes ACP
 
