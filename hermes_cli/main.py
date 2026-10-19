@@ -8,12 +8,10 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-# Remote orchestration must not activate PM or the local agent runtime.
-from hermes_cli import _startup_fast
+from hermes_cli import _startup_fast  # remote orchestration must not activate PM or the agent runtime
 
 if (_remote_rc := _startup_fast.try_fast_remote()) is not None:
     raise SystemExit(_remote_rc)
-
 # hermes_bootstrap must be the first runtime import — it sets up UTF-8 stdio on
 # Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
 # ``hermes update`` the editable install's ``.pth`` may not list it yet; crashing

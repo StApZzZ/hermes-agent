@@ -1,0 +1,5 @@
+name: cli-subscriptions-provider
+kind: model-provider
+version: 1.0.0
+description: Codex, Claude Code and Gemini CLIs as subscription-backed inference for Hermes
+author: Gomanov Alexander

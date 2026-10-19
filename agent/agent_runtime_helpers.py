@@ -1890,55 +1890,6 @@ def anthropic_prompt_cache_policy(
     return False, False
 
 
-def _provider_supplied_client(agent, client_kwargs: dict) -> Any | None:
-    """Ask the registered ProviderProfile for a custom client, if any. Resolves by provider name,
-    then by ``base_url`` prefix so a URL-only runtime (``acp://…``) still reaches its profile.
-    A profile that raises is logged and skipped: a third-party plugin must not be able to take
-    the turn down, it can only fail to provide a client."""
-    try:
-        from providers import get_provider_profile
-    except Exception:
-        return None
-    profile = None
-    provider_name = (getattr(agent, "provider", "") or "").strip()
-    if provider_name:
-        try:
-            profile = get_provider_profile(provider_name)
-        except Exception:
-            profile = None
-    if profile is None:
-        base_url = str(client_kwargs.get("base_url", "") or "").strip()
-        if base_url:
-            profile = _profile_for_base_url(base_url)
-    if profile is None:
-        return None
-    try:
-        return profile.create_client(**client_kwargs)
-    except Exception:
-        _ra().logger.warning(
-            "Provider profile %r failed to create a client; falling back to the standard client path",
-            getattr(profile, "name", provider_name) or "?", exc_info=True,
-        )
-        return None
-
-
-def _profile_for_base_url(base_url: str) -> Any | None:
-    """Registered profile whose own base_url is a prefix of ``base_url`` (provider name did not
-    resolve). Prefix, not equality: the replaced copilot-acp branch keyed on
-    ``startswith("acp://copilot")``, so a path or user override under the same root must resolve."""
-    try:
-        from providers import list_providers
-        candidates = list_providers()
-    except Exception:
-        return None
-    target = base_url.rstrip("/").lower()
-    for candidate in candidates or []:
-        own = str(getattr(candidate, "base_url", "") or "").rstrip("/").lower()
-        if own and (target == own or target.startswith(own + "/")):
-            return candidate
-    return None
-
-
 def _ensure_copilot_headers(client_kwargs: dict) -> None:
     """Defense-in-depth: recovery/restore rebuild from a snapshot without re-running header
     wiring; a missing Copilot-Integration-Id causes model_not_available_for_integrator 400s.
@@ -1978,6 +1929,7 @@ def _gemini_native_client(agent, client_kwargs: dict, httpx_verify, *, reason: s
 
 
 def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: bool) -> Any:
+    from agent.agent_runtime_provider_clients import provider_supplied_client
     from agent.auxiliary_client import (
         _to_openai_base_url,
         _validate_base_url,
@@ -2029,7 +1981,7 @@ def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: boo
     # before the built-in ladder so a profile registered from ~/.hermes/plugins/ or a pip entry
     # point can ship a transport without editing this function (what makes an out-of-tree ACP
     # provider possible). None (the default) falls through, so existing providers are unaffected.
-    provider_client = _provider_supplied_client(agent, client_kwargs)
+    provider_client = provider_supplied_client(agent, client_kwargs)
     if provider_client is not None:
         _ra().logger.info(
             "%s client created from provider profile (%s, shared=%s) %s",

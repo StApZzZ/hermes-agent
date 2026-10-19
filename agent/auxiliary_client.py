@@ -5243,7 +5243,7 @@ def _resolve_azure_foundry_branch(req: _ResolveRequest) -> _ResolveResult:
 def _api_key_profile_supplied_client(provider: str, **client_kwargs: Any) -> Any | None:
     """Registered profile's own client for an ``api_key`` aux route, or ``None``.
 
-    Same registration seam as ``agent_runtime_helpers._provider_supplied_client`` (main agent)
+    Same registration seam as ``agent_runtime_provider_clients.provider_supplied_client`` (main agent)
     and the ``external_process`` branch below: a profile whose wire protocol is not
     OpenAI-over-HTTP overrides ``ProviderProfile.create_client()`` to supply its transport.
     A profile that raises is logged and skipped — a third-party plugin can only fail to
