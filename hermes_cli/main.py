@@ -8,7 +8,18 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-# hermes_bootstrap must be the very first import — it sets up UTF-8 stdio on
+# Remote development is a stdlib-only launcher and must not activate PM or
+# import the local agent runtime. All agent entry paths still bootstrap first.
+import sys
+
+if sys.argv[1:2] == ["remote"]:
+    from hermes_cli._startup_fast import try_fast_remote
+
+    _remote_rc = try_fast_remote()
+    if _remote_rc is not None:
+        raise SystemExit(_remote_rc)
+
+# hermes_bootstrap must be the first runtime import — it sets up UTF-8 stdio on
 # Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
 # ``hermes update`` the editable install's ``.pth`` may not list it yet; crashing
 # here would block ``hermes update``.
@@ -2457,7 +2468,7 @@ def _coalesce_session_name_args(argv: list) -> list:
         "chat", "model", "gateway", "setup", "whatsapp", "whatsapp-cloud", "login", "logout",
         "auth", "status", "cron", "doctor", "config", "pairing", "skills", "tools", "mcp",
         "sessions", "insights", "update", "uninstall", "profile", "dashboard", "serve",
-        "desktop", "gui", "honcho", "claw", "plugins", "security", "acp", "webhook", "peer",
+        "desktop", "gui", "honcho", "claw", "plugins", "security", "acp", "webhook", "peer", "remote",
         "memory", "dump", "debug", "backup", "import", "completion", "logs", "usage",
     }
     _SESSION_FLAGS = {"-c", "--continue", "-r", "--resume"}
@@ -2785,7 +2796,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
         "model", "monitoring", "pairing", "pause", "peer", "pets", "plugins", "portal", "profile",
-        "project", "proxy",
+        "project", "proxy", "remote",
         "prompt-size",
         "resume",
         "send", "sessions", "setup",

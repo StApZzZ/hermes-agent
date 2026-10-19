@@ -40,6 +40,7 @@ __all__ = [
     "read_install_method",
     "read_openai_version",
     "try_fast_version",
+    "try_fast_remote",
 ]
 
 
@@ -258,3 +259,17 @@ def try_fast_version(argv: list[str] | None = None) -> bool:
 
     print_fast_version_info()
     return True
+
+
+def try_fast_remote(argv: list[str] | None = None) -> int | None:
+    """Dispatch the standalone launcher before config, plugins or model imports.
+
+    Global profile/container routing keeps the regular parser's semantics.
+    Only the explicit ``hermes remote ...`` form takes this path.
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv or argv[0] != "remote" or container_mode_may_be_active():
+        return None
+    from hermes_cli.subcommands.remote import main
+
+    return main(argv[1:])
