@@ -71,11 +71,13 @@ def test_register_child_entry_shape(ledger, child):
     assert e["purpose"] == "mcp-helper"
     assert e["install"] == pi.install_id()
     assert e["spawner_pid"] == os.getpid()
+    # The ledger records identity births (``process_birth``), not raw ``create_time()``: on Linux
+    # they part once ``btime`` moves (WSL2 drifts it by seconds).
     assert e["spawner_create"] == pytest.approx(
-        psutil.Process(os.getpid()).create_time(), abs=2.0
+        pi.process_birth(psutil.Process(os.getpid())), abs=2.0
     )
     assert e["create_time"] == pytest.approx(
-        psutil.Process(child.pid).create_time(), abs=2.0
+        pi.process_birth(psutil.Process(child.pid)), abs=2.0
     )
     assert e["registered_at"] == pytest.approx(time.time(), abs=30.0)
     # Visible through the live-verified reader too.

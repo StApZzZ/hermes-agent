@@ -11,10 +11,11 @@ import pytest
 
 from hermes_state import SessionDB
 import hermes_state_runtime as rt
+from hermes_cli.process_identity import process_birth
 
 
 def hello(process):
-    return {'type': 'hello', 'pid': process.pid, 'birth': psutil.Process(process.pid).create_time(),
+    return {'type': 'hello', 'pid': process.pid, 'birth': process_birth(psutil.Process(process.pid)),
             'ancestors': [os.getpid()]}
 
 

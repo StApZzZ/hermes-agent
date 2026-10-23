@@ -8,7 +8,13 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-# hermes_bootstrap must be the very first import — it sets up UTF-8 stdio on
+# Remote orchestration must not activate PM or the local agent runtime.
+from hermes_cli import _startup_fast
+
+if (_remote_rc := _startup_fast.try_fast_remote()) is not None:
+    raise SystemExit(_remote_rc)
+
+# hermes_bootstrap must be the first runtime import — it sets up UTF-8 stdio on
 # Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
 # ``hermes update`` the editable install's ``.pth`` may not list it yet; crashing
 # here would block ``hermes update``.
@@ -44,8 +50,6 @@ import sys
 _bootstrap_root = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 if _bootstrap_root not in sys.path:
     sys.path.insert(0, _bootstrap_root)
-from hermes_cli import _startup_fast
-import itertools
 
 # A literal ``~``/``$VAR`` in HERMES_HOME (fish, or any quoted value) must become absolute
 # before the first reader — otherwise it resolves against cwd and scaffolds <cwd>/~/.hermes.
@@ -60,11 +64,7 @@ _startup_fast.normalize_hermes_home_env()
 # mentioning both words never arm a 300s hard-exit timer. Foreground runs arm
 # too — a pre-loop wedge is just as dead without a supervisor; GatewayRunner
 # disarms once the event loop is live.
-def _argv_is_gateway_run(argv: list) -> bool:
-    return any(a == "gateway" and b == "run" for a, b in itertools.pairwise(argv))
-
-
-if _argv_is_gateway_run(sys.argv[1:]):
+if _startup_fast.argv_is_gateway_run(sys.argv[1:]):
     try:
         from hermes_startup_watchdog import arm_startup_watchdog as _arm_sw
 
@@ -381,6 +381,7 @@ from hermes_cli.subcommands.logs import build_logs_parser
 from hermes_cli.subcommands.prompt_size import build_prompt_size_parser
 from hermes_cli.subcommands.memory import build_memory_parser
 from hermes_cli.subcommands.acp import build_acp_parser
+from hermes_cli.subcommands.remote import build_remote_parser
 from hermes_cli.subcommands.tools import build_tools_parser
 from hermes_cli.subcommands.insights import build_insights_parser
 from hermes_cli.subcommands.usage import build_usage_parser
@@ -2456,7 +2457,7 @@ def _coalesce_session_name_args(argv: list) -> list:
         "chat", "model", "gateway", "setup", "whatsapp", "whatsapp-cloud", "login", "logout",
         "auth", "status", "cron", "doctor", "config", "pairing", "skills", "tools", "mcp",
         "sessions", "insights", "update", "uninstall", "profile", "dashboard", "serve",
-        "desktop", "gui", "honcho", "claw", "plugins", "security", "acp", "webhook", "peer",
+        "desktop", "gui", "honcho", "claw", "plugins", "security", "acp", "webhook", "peer", "remote",
         "memory", "dump", "debug", "backup", "import", "completion", "logs", "usage",
     }
     _SESSION_FLAGS = {"-c", "--continue", "-r", "--resume"}
@@ -2784,7 +2785,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
         "model", "monitoring", "pairing", "pause", "peer", "pets", "plugins", "portal", "profile",
-        "project", "proxy",
+        "project", "proxy", "remote",
         "prompt-size",
         "resume",
         "send", "sessions", "setup",
@@ -3422,6 +3423,7 @@ def _build_cli_parser():
     build_update_parser(subparsers, cmd_update=cmd_update)
     build_uninstall_parser(subparsers, cmd_uninstall=cmd_uninstall)
     build_acp_parser(subparsers, cmd_acp=cmd_acp)
+    build_remote_parser(subparsers)
     build_profile_parser(subparsers, cmd_profile=cmd_profile)
     build_completion_parser(subparsers, cmd_completion=cmd_completion, parser=parser)
     build_dashboard_parser(

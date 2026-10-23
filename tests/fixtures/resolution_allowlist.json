@@ -1,5 +1,11 @@
 [
   {
+    "path": "hermes_cli/subcommands/remote.py",
+    "symbol": "_open",
+    "kind": "bare_which",
+    "reason": "Standalone stdlib-only Windows client locates the user's VS Code; no local Hermes platform or managed runtime is required. Covered by remote launcher tests."
+  },
+  {
     "path": "agent/anthropic_adapter.py",
     "symbol": "<module>",
     "kind": "known_path_table"

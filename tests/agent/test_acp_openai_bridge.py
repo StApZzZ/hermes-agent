@@ -130,6 +130,60 @@ def test_malformed_and_empty_input_never_raises():
     assert cleaned == "hi"
 
 
+def _invoke(name, **params):
+    body = "".join(f'<parameter name="{k}">{v}</parameter>' for k, v in params.items())
+    return f'<invoke name="{name}">{body}</invoke>\n'
+
+
+def test_native_invoke_markup_is_a_fallback_with_typed_arguments():
+    """Claude through a subscription CLI sometimes answers in its native call markup instead of
+    the <tool_call> contract; unparsed, the turn read as a final answer and a kanban worker exited
+    without its terminal call."""
+    text = ("Reading it.\n<function_calls>\n"
+            + _invoke("write_file", path="/tmp/a.json", content='{"a": 1}')
+            + _invoke("search_files", pattern="x", limit=40, regex="true", paths='["a", "b"]')
+            + "</function_calls>")
+    calls, cleaned = extract_tool_calls_from_text(text)
+    assert [c.function.name for c in calls] == ["write_file", "search_files"]
+    # Free-text parameters stay strings even when they look like JSON (a written .json file).
+    assert json.loads(calls[0].function.arguments) == {"path": "/tmp/a.json", "content": '{"a": 1}'}
+    assert json.loads(calls[1].function.arguments) == {"pattern": "x", "limit": 40, "regex": True, "paths": ["a", "b"]}
+    # The markup carries no id: each call gets a fresh one, never a per-response ordinal that
+    # repeats every turn and binds later results to the first turn's call.
+    assert len({c.id for c in calls}) == 2 and all(c.id.startswith("invoke_") for c in calls)
+    assert cleaned == "Reading it."
+
+
+def test_only_the_first_invoke_turn_runs_and_the_invented_rest_is_dropped():
+    """Past its first block the model keeps writing as if the calls had returned: an invented
+    result, a check that "the tool returned nothing", a verdict built on it. None of that runs."""
+    text = ("<function_calls>" + _invoke("terminal", command="ls") + _invoke("read_file", path="a")
+            + "</function_calls>\n<function_calls>" + _invoke("terminal", command="echo hi")
+            + "</function_calls>\nThe tools return nothing.\n"
+            + "<function_calls>" + _invoke("kanban_block", reason="tools broken") + "</function_calls>")
+    calls, cleaned = extract_tool_calls_from_text(text)
+    assert [c.function.name for c in calls] == ["terminal", "read_file"]
+    assert cleaned == ""
+
+
+def test_a_card_verdict_batched_with_other_calls_waits_for_their_results():
+    """A verdict (complete/block/request_review/request_changes) written in the same turn as other
+    calls was decided before their results existed: the calls before it run, the verdict waits."""
+    batched = (_invoke("terminal", command="./check.sh") + _invoke("kanban_comment", body="done")
+               + _invoke("kanban_block", reason="tools return nothing"))
+    calls, _ = extract_tool_calls_from_text(batched)
+    assert [c.function.name for c in calls] == ["terminal", "kanban_comment"]
+    # A verdict alone in its turn is the decision itself and goes through.
+    calls, _ = extract_tool_calls_from_text(_invoke("kanban_complete", summary="all AC pass"))
+    assert [c.function.name for c in calls] == ["kanban_complete"]
+    # The <tool_call> contract follows the same rule.
+    blocks = "".join(
+        f'<tool_call>{{"id": "c{i}", "type": "function", "function": {{"name": "{n}", "arguments": "{{}}"}}}}</tool_call>'
+        for i, n in enumerate(["write_file", "kanban_request_review"]))
+    calls, _ = extract_tool_calls_from_text(blocks)
+    assert [c.function.name for c in calls] == ["write_file"]
+
+
 # ── streaming shape ──────────────────────────────────────────────────────────
 
 

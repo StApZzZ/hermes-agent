@@ -15,6 +15,7 @@ import logging
 import os
 import platform
 import sys
+import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -70,18 +71,64 @@ def process_birth(proc) -> float:
     gateway owner and a freshly spawned worker read different births for the same process, and
     the exact identity match refused every managed worker (#140580). The kernel's own start
     (``monotonic=True``: the unadjusted ``kinfo_proc`` epoch start) is what every process sees.
-    Other platforms keep ``create_time()``: Linux and Windows apply no per-process reference.
-    Raises ``psutil.Error`` like ``create_time()``.
+    Linux has the same failure from the other side: ``create_time()`` adds ``boot_time()``, re-read
+    from ``/proc/stat`` ``btime`` on every call, and ``btime`` (now minus uptime) moves by a whole
+    second after a clock step — on WSL2 after host sleep or time sync — so a long-lived owner and a
+    fresh worker disagreed by exactly 1 s (``permission_denied`` on every worker write). Linux adds
+    the jiffies-since-boot start to ONE boot reference per boot (:func:`_linux_boot_reference`):
+    still epoch seconds (a pid reused after a reboot never matches an old record), equal to
+    ``create_time()`` until ``btime`` moves, and the same in every process after it moves.
+    Windows keeps ``create_time()``. Raises ``psutil.Error`` like ``create_time()``.
     """
     import psutil
-    if getattr(psutil, "MACOS", False):
-        platform_proc = getattr(proc, "_proc", None)
-        if platform_proc is not None:
-            try:
-                return float(platform_proc.create_time(monotonic=True))
-            except TypeError:  # a psutil without the monotonic read: fall back to the adjusted one
-                pass
+    platform_proc = getattr(proc, "_proc", None)
+    if platform_proc is not None and getattr(psutil, "MACOS", False):
+        try:
+            return float(platform_proc.create_time(monotonic=True))
+        except TypeError:  # a psutil without the monotonic read: fall back to the adjusted one
+            pass
+    if platform_proc is not None and getattr(psutil, "LINUX", False):
+        try:
+            return float(platform_proc.create_time(monotonic=True)) + _linux_boot_reference(psutil)
+        except TypeError:  # a psutil without the monotonic read
+            pass
     return float(proc.create_time())
+
+
+_BOOT_REFERENCE: Optional[float] = None
+
+
+def _linux_boot_reference(psutil) -> float:
+    """The ``btime`` the first Hermes process of this user read after boot, shared by all of them.
+
+    Kept in ``/dev/shm`` (tmpfs: gone at reboot) under the kernel boot id, published atomically
+    (write a temp file, then ``link``: the first writer wins and readers never see half a value),
+    and cached per process. A file owned by another user, or any OS error, falls back to the live
+    ``boot_time()`` — the pre-fix behaviour, never a crash."""
+    global _BOOT_REFERENCE
+    if _BOOT_REFERENCE is not None:
+        return _BOOT_REFERENCE
+    live = float(psutil.boot_time())
+    value = live
+    try:
+        boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="ascii").strip()
+        base = Path("/dev/shm") if os.access("/dev/shm", os.W_OK) else Path(tempfile.gettempdir())
+        ref = base / f"hermes-boot-reference-{os.getuid()}-{boot_id}"
+        if not ref.exists():
+            tmp = ref.with_name(f"{ref.name}.{os.getpid()}.tmp")
+            tmp.write_text(repr(live), encoding="ascii")
+            try:
+                os.link(tmp, ref)
+            except FileExistsError:
+                pass
+            finally:
+                tmp.unlink(missing_ok=True)
+        if ref.stat().st_uid == os.getuid():
+            value = float(ref.read_text(encoding="ascii"))
+    except (OSError, ValueError):
+        value = live
+    _BOOT_REFERENCE = value
+    return value
 
 
 def _process_create_time(pid: Optional[int] = None) -> Optional[float]:

@@ -26,9 +26,11 @@ from __future__ import annotations
 
 import os
 import sys
+import itertools
 
 __all__ = [
     "active_profile_may_override_home",
+    "argv_is_gateway_run",
     "container_mode_may_be_active",
     "ensure_project_root_on_path",
     "is_container_startup_environment",
@@ -39,6 +41,7 @@ __all__ = [
     "project_root_str",
     "read_install_method",
     "read_openai_version",
+    "try_fast_remote",
     "try_fast_version",
 ]
 
@@ -258,3 +261,22 @@ def try_fast_version(argv: list[str] | None = None) -> bool:
 
     print_fast_version_info()
     return True
+
+
+def try_fast_remote(argv: list[str] | None = None) -> int | None:
+    """Dispatch the standalone launcher before config, plugins or model imports.
+
+    Only the explicit ``hermes remote ...`` form takes this path. Its bookmarks
+    are client state: agent profiles/container mode must not move VS Code or
+    SSH into an agent's container or initialize a local runtime.
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv or argv[0] != "remote":
+        return None
+    from hermes_cli.subcommands.remote import main
+
+    return main(argv[1:])
+
+
+def argv_is_gateway_run(argv: list) -> bool:
+    return any(a == "gateway" and b == "run" for a, b in itertools.pairwise(argv))
