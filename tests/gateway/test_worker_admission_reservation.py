@@ -10,11 +10,14 @@ import pytest
 from hermes_state import SessionDB
 from hermes_state_runtime import (admit_session_input, begin_runtime_epoch, claim_session_input,
                                   register_worker_execution, settle_session_input)
+from hermes_cli.process_identity import process_birth
 
 
 def hello(process):
-    """A direct child's self-introduction (no launcher: chain length 0)."""
-    return {'type': 'hello', 'pid': process.pid, 'birth': psutil.Process(process.pid).create_time(), 'ancestors': [os.getpid()]}
+    """A direct child's self-introduction (no launcher: chain length 0), with the birth the worker
+    itself sends (``agent/managed_worker.py``: ``process_birth``)."""
+    from hermes_cli.process_identity import process_birth
+    return {'type': 'hello', 'pid': process.pid, 'birth': process_birth(psutil.Process(process.pid)), 'ancestors': [os.getpid()]}
 
 
 def test_started_admission_binds_only_exact_owned_process_and_principal(tmp_path):
@@ -119,7 +122,7 @@ async def test_input_queued_behind_a_live_worker_is_released_then_runs_when_it_f
     connection = SimpleNamespace(authority=authority, actor=actor)
     ref = SessionRef('p', 'owned')
     scope = {'profile_id': 'p', 'session_id': 'owned', 'execution_id': 'compute', 'generation': 0,
-             'pid': process.pid, 'birth': psutil.Process(process.pid).create_time(), 'secret': 'w' * 32}
+             'pid': process.pid, 'birth': process_birth(psutil.Process(process.pid)), 'secret': 'w' * 32}
     try:
         registered = await worker_request(connection, ref, scope | {'kind': 'compute'}, operation='register')
         # Native ingress waits on the admission it committed; a blocked FIFO must answer it.
@@ -210,12 +213,50 @@ def test_process_fingerprints_survive_a_clock_step_on_macos(stale_psutil_boot_re
 
 
 def test_process_birth_is_create_time_where_psutil_applies_no_reference():
-    """Linux and Windows read ``create_time()`` unchanged, so every stored fingerprint and ledger
-    row written before KB-6 still matches there; on macOS with no step psutil returns the kernel
-    start unchanged too (``adjust_proc_create_time`` ignores |drift| < 1 s)."""
+    """Windows reads ``create_time()`` unchanged, so every stored fingerprint and ledger row
+    written before KB-6 still matches there; on macOS with no step psutil returns the kernel start
+    unchanged too (``adjust_proc_create_time`` ignores |drift| < 1 s). Linux adds the kernel start
+    to the boot reference, which is the ``btime`` ``create_time()`` adds until ``btime`` moves."""
     from gateway.status import get_process_start_time
-    from hermes_cli.process_identity import _pid_alive_matches, process_birth
+    from hermes_cli.process_identity import _linux_boot_reference, _pid_alive_matches, process_birth
     proc = psutil.Process()
-    assert process_birth(proc) == proc.create_time()
-    assert _pid_alive_matches(os.getpid(), proc.create_time(), strict=True) is True
+    if psutil.LINUX:
+        assert process_birth(proc) == proc._proc.create_time(monotonic=True) + _linux_boot_reference(psutil)
+    else:
+        assert process_birth(proc) == proc.create_time()
+    assert _pid_alive_matches(os.getpid(), process_birth(proc), strict=True) is True
     assert get_process_start_time(os.getpid()) is not None
+
+
+@pytest.mark.platforms("linux")
+@pytest.mark.parametrize('drift', [1.0, -1.0])
+def test_process_birth_survives_a_btime_step_on_linux(monkeypatch, drift):
+    """Linux ``create_time()`` re-adds ``boot_time()`` (``btime`` from /proc/stat) on every call,
+    and ``btime`` moves by whole seconds after a clock step — on WSL2 after host sleep or time
+    sync. A long-lived owner and a fresh worker then read births 1 s apart and the exact identity
+    match refused every managed worker (``permission_denied``). The birth does not move."""
+    import psutil._pslinux as pslinux
+    from hermes_cli.process_identity import process_birth
+    before, epoch_before = process_birth(psutil.Process()), psutil.Process().create_time()
+    real_boot_time = pslinux.boot_time
+    monkeypatch.setattr(pslinux, 'boot_time', lambda: real_boot_time() + drift)
+    proc = psutil.Process()
+    assert proc.create_time() == pytest.approx(epoch_before + drift)  # the step is real
+    assert process_birth(proc) == before
+
+
+@pytest.mark.platforms("linux")
+def test_linux_boot_reference_is_published_once_and_shared(tmp_path, monkeypatch):
+    """A process that starts after the step reads the reference the first one published, not the
+    moved ``btime``; publication is atomic (no temp file left, never a partial value)."""
+    import hermes_cli.process_identity as identity
+    monkeypatch.setattr(identity.os, 'access', lambda path, mode: False)  # no /dev/shm: the temp dir
+    monkeypatch.setattr(identity.tempfile, 'gettempdir', lambda: str(tmp_path))
+    monkeypatch.setattr(identity, '_BOOT_REFERENCE', None)
+    first = identity._linux_boot_reference(psutil)
+    real_boot_time = psutil.boot_time
+    monkeypatch.setattr(psutil, 'boot_time', lambda: real_boot_time() + 1)
+    monkeypatch.setattr(identity, '_BOOT_REFERENCE', None)  # a fresh process
+    assert identity._linux_boot_reference(psutil) == first
+    assert len(list(tmp_path.glob('hermes-boot-reference-*'))) == 1
+    assert not list(tmp_path.glob('*.tmp'))
