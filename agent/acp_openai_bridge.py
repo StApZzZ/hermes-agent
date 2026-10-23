@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from types import SimpleNamespace
 from typing import Any, Iterable
 
@@ -21,6 +22,16 @@ TOOL_CALL_BLOCK_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DO
 TOOL_CALL_JSON_RE = re.compile(
     r"\{\s*\"id\"\s*:\s*\"[^\"]+\"\s*,\s*\"type\"\s*:\s*\"function\"\s*,\s*\"function\"\s*:\s*\{.*?\}\s*\}", re.DOTALL
 )
+# Claude through the subscription CLI sometimes answers in its native call markup instead of the
+# <tool_call> contract (long sessions, fallback models): unparsed, the turn read as a final answer
+# and the kanban worker exited without its terminal call.
+INVOKE_BLOCK_RE = re.compile(r'<(?:\w+:)?invoke name="([^"]+)">(.*?)</(?:\w+:)?invoke>', re.DOTALL)
+INVOKE_PARAM_RE = re.compile(r'<(?:\w+:)?parameter name="([^"]+)">(.*?)</(?:\w+:)?parameter>', re.DOTALL)
+# Only whitespace between calls of one turn: a closing </function_calls> ends the turn, and any block
+# after it was written while the model waited for results it could not get (it then "saw" them empty).
+INVOKE_GAP_RE = re.compile(r"\s*")
+# Free-text parameters stay strings even when they look like JSON (a written .json file's content).
+INVOKE_TEXT_PARAMS = frozenset({"content", "old_string", "new_string", "text", "body", "command", "patch", "code", "query"})
 
 TOOL_CALL_CONTRACT = (
     "Available tools (OpenAI function schema). "
@@ -139,6 +150,54 @@ def _parse_tool_call(raw_json: str, ordinal: int) -> ChatCompletionMessageToolCa
     return build_openai_tool_call(call_id=call_id, name=fn_name, arguments=fn_args)
 
 
+KANBAN_VERDICT_TOOLS = frozenset({"kanban_block", "kanban_complete", "kanban_request_review", "kanban_request_changes"})
+
+
+def _drop_premature_verdict(calls: list[ChatCompletionMessageToolCall]) -> list[ChatCompletionMessageToolCall]:
+    """A card verdict written in the same turn as other calls was decided before their results existed
+    (the CLI model writes on without stopping and reads the silence as "tools return nothing", then
+    blocks the card). Run the calls before it; the next turn decides on the real results."""
+    for i, call in enumerate(calls):
+        if i and call.function.name in KANBAN_VERDICT_TOOLS:
+            return calls[:i]
+    return calls
+
+
+def _extract_invoke_calls(text: str) -> tuple[list[ChatCompletionMessageToolCall], str] | None:
+    """Native ``<invoke name=…><parameter name=…>`` markup → tool calls, or None when there is none.
+
+    Only the first run of blocks separated by whitespace (one ``function_calls`` turn) is taken: past
+    it the model has kept writing as if the calls had returned — invented or "empty" results and
+    follow-up calls built on them — so the rest of the text is dropped, never executed."""
+    first = INVOKE_BLOCK_RE.search(text)
+    if first is None:
+        return None
+    calls: list[ChatCompletionMessageToolCall] = []
+    pos = first.start()
+    while (m := INVOKE_BLOCK_RE.match(text, pos)) is not None:
+        args: dict[str, Any] = {}
+        for p in INVOKE_PARAM_RE.finditer(m.group(2)):
+            name, raw = p.group(1), p.group(2)
+            value: Any = raw
+            if name not in INVOKE_TEXT_PARAMS and raw.strip()[:1] in ("[", "{"):
+                try:
+                    value = json.loads(raw)
+                except ValueError:
+                    pass
+            elif re.fullmatch(r"-?\d+", raw.strip()) and name not in INVOKE_TEXT_PARAMS:
+                value = int(raw.strip())
+            elif raw.strip() in ("true", "false") and name not in INVOKE_TEXT_PARAMS:
+                value = raw.strip() == "true"
+            args[name] = value
+        # Unique per call: the markup carries no id, and a per-response ordinal repeats every turn, so
+        # the transcript bound later results to the first turn's call and the model saw them empty.
+        calls.append(build_openai_tool_call(call_id=f"invoke_{uuid.uuid4().hex[:16]}", name=m.group(1),
+                                            arguments=json.dumps(args, ensure_ascii=False)))
+        pos = INVOKE_GAP_RE.match(text, m.end()).end()
+    prefix = re.sub(r"</?(?:\w+:)?function_calls>", "", text[:first.start()]).strip()
+    return calls, prefix
+
+
 def extract_tool_calls_from_text(text: str) -> tuple[list[ChatCompletionMessageToolCall], str]:
     """Pull ``<tool_call>`` blocks out of an ACP response → ``(tool_calls, cleaned_text)`` with the consumed blocks
     removed so the assistant message doesn't show raw JSON. Bare-JSON fallback runs only when no XML block parsed."""
@@ -154,6 +213,11 @@ def extract_tool_calls_from_text(text: str) -> tuple[list[ChatCompletionMessageT
             consumed_spans.append((m.start(), m.end()))
         if extracted:
             break
+    if not extracted:
+        invoked = _extract_invoke_calls(text)
+        if invoked is not None:
+            return _drop_premature_verdict(invoked[0]), invoked[1]
+    extracted = _drop_premature_verdict(extracted)
     if not consumed_spans:
         return extracted, text.strip()
 
