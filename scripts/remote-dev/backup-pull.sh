@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Pull a snapshot of a Hermes remote-development server into
 # ${XDG_DATA_HOME:-~/.local/share}/hermes-server-backups/<alias>/.
 #

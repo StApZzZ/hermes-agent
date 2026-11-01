@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Server half of backup-pull.sh: runs as the Hermes user and writes ONE tar.gz to stdout.
 # Diagnostics go to stderr. SQLite databases are copied through the backup API so a live
 # session or gateway never yields a torn state.db; everything rebuildable is left out.

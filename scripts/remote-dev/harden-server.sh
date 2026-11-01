@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Lock a Hermes remote-development server down to key-only SSH from an allowlist (VPN exits).
 #
 #   harden-server.sh apply --allow <ipv4[/len]> [--allow ...] [--admin-user NAME]
