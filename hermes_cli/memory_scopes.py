@@ -49,11 +49,13 @@ def space_store(name: str) -> Store:
 
 
 def profile_stores(profile: str, kind: Optional[str] = None) -> list[Store]:
+    from hermes_cli.config_backend import config_exists, read_config_doc_readonly
     from hermes_cli.profiles import normalize_profile_name
-    from hermes_cli.spaces import _load_yaml, _profile_dir
+    from hermes_cli.spaces import _profile_dir
     canon = normalize_profile_name(profile)
     home = _profile_dir(canon)
-    section = _load_yaml(home / "config.yaml").get("memory")
+    doc = read_config_doc_readonly(home / "config.yaml") if config_exists(home / "config.yaml") else None
+    section = doc.get("memory") if isinstance(doc, dict) else None
     limits = section if isinstance(section, dict) else {}
     stores = []
     for name in ([kind] if kind else list(_PROFILE_STORES)):

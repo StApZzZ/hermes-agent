@@ -16,6 +16,9 @@ import pytest
 
 from tests.hermes_cli.anon_portal import PORTAL, FakePortal, install_portal, make_jwt
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 DESTINATION = "user_acct_1"
 
 

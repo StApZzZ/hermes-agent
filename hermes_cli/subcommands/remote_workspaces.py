@@ -9,13 +9,13 @@ import os
 from pathlib import Path
 
 
-def config_path() -> Path:
+def bookmarks_path() -> Path:
     base = Path(os.environ.get("APPDATA") or Path.home() / ".config")
     return base / "hermes-remote" / "workspaces.json"
 
 
 def load_workspaces(path: Path | None) -> dict:
-    source = path or config_path()
+    source = path or bookmarks_path()
     if path is None and not source.exists():
         return {}
     try:

@@ -16,6 +16,7 @@ import threading
 from types import SimpleNamespace
 from typing import Any
 
+from hermes_cli.process_identity import release_process_group_once_empty, spawn_owned
 from agent.acp_openai_bridge import (
     completion_to_stream_chunks,
     extract_tool_calls_from_text,
@@ -103,9 +104,10 @@ class SubscriptionCLIClient:
             with self._lock:
                 if self.is_closed:
                     raise RuntimeError("Subscription CLI client is closed")
-                proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        text=True, encoding="utf-8", cwd=self.cwd, env=env,
-                                        start_new_session=os.name == "posix", creationflags=windows_hide_flags())
+                # Owned: the CLI and its children die with Hermes even on SIGKILL.
+                proc = spawn_owned(argv, purpose=f"{self.engine}-cli", stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True, encoding="utf-8", cwd=self.cwd, env=env,
+                                   creationflags=windows_hide_flags())
                 self._processes.add(proc)
             try:
                 try:
@@ -126,6 +128,7 @@ class SubscriptionCLIClient:
                 return decode_result(self.engine, stdout)
             finally:
                 terminate_process(proc)
+                release_process_group_once_empty(proc.pid, proc=proc)
                 for pipe in (proc.stdin, proc.stdout, proc.stderr):
                     if pipe is not None:
                         pipe.close()

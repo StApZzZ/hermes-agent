@@ -8,10 +8,6 @@ Usage:
     hermes <cmd> --help        # Per-command help
 """
 
-from hermes_cli import _startup_fast  # remote orchestration must not activate PM or the agent runtime
-
-if (_remote_rc := _startup_fast.try_fast_remote()) is not None:
-    raise SystemExit(_remote_rc)
 # hermes_bootstrap must be the first runtime import — it sets up UTF-8 stdio on
 # Windows (no-op on POSIX). Guarded: after a ``git pull`` / interrupted
 # ``hermes update`` the editable install's ``.pth`` may not list it yet; crashing
@@ -32,6 +28,14 @@ from hermes_cli import _early_recovery as _early_recovery_mod
 if _early_recovery_mod.restore_interrupted_pull():
     _early_recovery_mod.relaunch_after_restore()
 
+# `hermes remote` (the standalone launcher) dispatches before config, plugins or the agent runtime.
+import sys as _sys
+
+if _sys.argv[1:2] == ["remote"]:
+    from hermes_cli._startup_fast import try_fast_remote
+
+    raise SystemExit(try_fast_remote())
+
 # Windows: neutralize CPython's ``platform._syscmd_ver`` before anything else
 # imports — it shells out ``cmd /c ver`` and flashes a console when this
 # process is windowless (pythonw gateway, kanban workers). No-op on POSIX.
@@ -48,6 +52,7 @@ import sys
 _bootstrap_root = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 if _bootstrap_root not in sys.path:
     sys.path.insert(0, _bootstrap_root)
+from hermes_cli import _startup_fast
 
 # A literal ``~``/``$VAR`` in HERMES_HOME (fish, or any quoted value) must become absolute
 # before the first reader — otherwise it resolves against cwd and scaffolds <cwd>/~/.hermes.

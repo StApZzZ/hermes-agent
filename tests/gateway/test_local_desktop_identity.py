@@ -13,6 +13,9 @@ import pytest
 
 from tests.waiting import async_wait_until
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 class _Transport:
     def __init__(self, identity):

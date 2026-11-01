@@ -9,6 +9,9 @@ import socket
 
 import pytest
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 def test_first_connector_action_in_a_test_home_mints_no_portal_guest():
     from hermes_cli import anon_auth

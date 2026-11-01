@@ -24,6 +24,9 @@ from tests.hermes_cli.anon_portal import install_portal
 from tests.waiting import wait_until
 from tools.connectors import live
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 ACCOUNT = {"owner": {"type": "account"}}
 CATALOG = {"connectors": [{"slug": "notion", "name": "Notion", "description": "Docs", "category": "Productivity",
                            "logoUrl": None, "state": "live"}]}

@@ -242,11 +242,13 @@ def test_real_main_remote_dispatch_does_not_import_agent(tmp_path, container_mod
         home = Path(os.environ["HERMES_HOME"])
         home.mkdir()
         (home / ".container-mode").write_text("{}", encoding="utf-8")
+    # hermes_bootstrap (PM activation) runs first for every CLI command; a client with no Hermes
+    # install uses the standalone remote.py script instead (test_standalone_script_works_...).
     script = '''
 import importlib.abc, runpy, sys
 class BlockRuntime(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'pm', 'agent', 'run_agent', 'yaml', 'torch', 'openai', 'anthropic'} or fullname == 'hermes_cli.config':
+        if fullname.split('.')[0] in {'agent', 'run_agent', 'yaml', 'torch', 'openai', 'anthropic'} or fullname == 'hermes_cli.config':
             raise AssertionError('Local runtime imported: ' + fullname)
 sys.meta_path.insert(0, BlockRuntime())
 sys.argv = ['hermes', 'remote', 'config', 'devbox', '--workspace', '/srv/repo', '--proxy']

@@ -207,13 +207,15 @@ class TestFetchFailure:
 
     def test_dead_override_on_the_manifest_url_keeps_the_fallback_chain(self, isolated_home):
         """An override pointing at the (dead) main URL must not put the manifest's working
-        fallback URL into the override's backoff."""
+        fallback URL into the override's backoff. The shipped URL: only it has mirrors, an own
+        catalog never falls through to the upstream copy."""
         from hermes_cli import model_catalog
-        cfg = {"enabled": True, "url": "http://master", "ttl_hours": 24.0,
-               "providers": {"openrouter": {"url": "http://master"}}}
+        master = model_catalog.DEFAULT_CATALOG_URL
+        cfg = {"enabled": True, "url": master, "ttl_hours": 24.0,
+               "providers": {"openrouter": {"url": master}}}
         with patch.object(model_catalog, "_load_catalog_config", return_value=cfg), \
                 patch.object(model_catalog, "_fetch_manifest",
-                             side_effect=lambda url, timeout: None if url == "http://master" else _valid_manifest()):
+                             side_effect=lambda url, timeout: None if url == master else _valid_manifest()):
             models = model_catalog.get_curated_openrouter_models()
         assert models == [(m["id"], m["description"]) for m in _valid_manifest()["providers"]["openrouter"]["models"]]
 
