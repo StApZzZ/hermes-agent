@@ -211,6 +211,12 @@ hermes profile use default    # switch back
 
 Sets a default so plain `hermes` commands target that profile. Like `kubectl config use-context`.
 
+:::tip Group profiles into spaces
+[Spaces](./spaces.md) group profiles by area — work, personal, projects — with one-step switching
+(`hermes space use work`, `/space work` in a chat), folder binding and notes shared by the
+agents of a space.
+:::
+
 If the sticky profile's directory is deleted by hand, Hermes refuses to run ordinary commands
 in the default profile instead, since they would read or write the wrong profile's state. Only
 the ways out still run, with a warning: `hermes profile list`, `hermes profile use default`, and

@@ -276,6 +276,20 @@ gateway:
     header: "👤 **Profile:** `{profile}`"
     home: "📂 **Home:** `{home}`"
     plain: "Profile: {profile}\nHome: {home}"
+  space:
+    header: "Spaces:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "No spaces yet. Create one on the host: hermes space create work --new-agent"
+    hint: "Switch: /space <name> [agent] · leave: /space off"
+    switched: "Switched to space {space} — agent {agent}. It keeps its own memory and conversation; your next message goes there."
+    cleared: "Left the space: this chat is back on its default agent."
+    unknown: "Unknown space: {name}. Send /space to list them."
+    no_agent: "Space {space} has no agents yet. On the host: hermes space add {space} <profile>"
+    not_member: "{agent} is not an agent of space {space}."
+    not_served: "Agent {agent} is not served by this gateway right now."
+    needs_multiplex: "Switching spaces in a chat needs a multiplexed gateway (gateway.multiplex_profiles: true)."
+    saved_next_session: "Saved: the next hermes session starts in space {space} (agent {agent}). This session stays as it is."
+    saved_default: "Saved: the next hermes session starts with the default profile."
   reasoning:
     level_default: "medium (default)"
     level_disabled: "none (disabled)"
@@ -1647,6 +1661,8 @@ slash:
     description: "Show your slash command access (admin / user)"
   profile:
     description: "Show active profile name and home directory"
+  space:
+    description: "List spaces (work, personal, projects) or switch to one"
   sessions:
     description: "Browse and resume previous sessions"
   config:

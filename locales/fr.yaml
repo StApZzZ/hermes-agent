@@ -300,6 +300,20 @@ gateway:
     plain: |-
       Profil : {profile}
       Répertoire : {home}
+  space:
+    header: "Espaces :"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Aucun espace pour l'instant. Créez-en un sur l'hôte : hermes space create work --new-agent"
+    hint: "Changer : /space <nom> [agent] · quitter : /space off"
+    switched: "Passé à l'espace {space} — agent {agent}. Il a sa propre mémoire et sa propre conversation ; votre prochain message y ira."
+    cleared: "Espace quitté : ce chat revient à son agent par défaut."
+    unknown: "Espace inconnu : {name}. Envoyez /space pour la liste."
+    no_agent: "L'espace {space} n'a pas encore d'agents. Sur l'hôte : hermes space add {space} <profile>"
+    not_member: "{agent} n'est pas un agent de l'espace {space}."
+    not_served: "L'agent {agent} n'est pas servi par cette passerelle pour le moment."
+    needs_multiplex: "Changer d'espace dans un chat nécessite une passerelle multiplexée (gateway.multiplex_profiles: true)."
+    saved_next_session: "Enregistré : la prochaine session hermes démarre dans l'espace {space} (agent {agent}). Cette session reste inchangée."
+    saved_default: "Enregistré : la prochaine session hermes démarre avec le profil par défaut."
   reasoning:
     level_default: "medium (par défaut)"
     level_disabled: "none (désactivé)"
@@ -1828,6 +1842,8 @@ slash:
     description: "Afficher votre niveau d'accès aux commandes slash (admin / utilisateur)"
   profile:
     description: "Afficher le nom du profil actif et son répertoire principal"
+  space:
+    description: "Lister les espaces (travail, personnel, projets) ou en changer"
   sessions:
     description: "Parcourir et reprendre les sessions précédentes"
   config:

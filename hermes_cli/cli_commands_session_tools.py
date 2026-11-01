@@ -293,6 +293,31 @@ class CLICommandsSessionToolsMixin:
         _say_block(f"  {_t('profile.profile', profile=reply.data['profile'])}",
                    f"  {_t('profile.home', home=reply.data['home'])}")
 
+    def _handle_space_command(self, cmd: str):
+        """/space [name [agent] | off] — list spaces, or pick the space the NEXT session starts in
+        (switching this one would rebuild its system prompt; see the caching invariant)."""
+        from hermes_cli.profiles import get_active_profile_name, set_active_profile
+        from hermes_cli.slash_exec import CommandContext, execute_command
+        args = cmd.split()[1:]
+        if not args:
+            options = {"current_profile": get_active_profile_name()}
+            return _say_block(*_lines(execute_command("space", CommandContext(surface="cli", options=options)).text))
+        if args[0].lower() in ("off", "reset", "default", "none"):
+            set_active_profile("default")
+            return _say_block(f"  {_gt('space.saved_default')}")
+        from hermes_cli import spaces
+        try:
+            space = spaces.get_space(args[0])
+        except (KeyError, ValueError):
+            return _say_block(f"  {_gt('space.unknown', name=args[0])}")
+        agent = args[1] if len(args) > 1 else space.primary
+        if not agent:
+            return _say_block(f"  {_gt('space.no_agent', space=space.name)}")
+        if agent not in space.agents:
+            return _say_block(f"  {_gt('space.not_member', agent=agent, space=space.name)}")
+        set_active_profile(agent)
+        _say_block(f"  {_gt('space.saved_next_session', space=space.label, agent=agent)}")
+
 
 def _stop_background_work() -> None:
     """``/stop``'s cleanup: kill the background processes, then interrupt the background (async)

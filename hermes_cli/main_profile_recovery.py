@@ -44,3 +44,21 @@ def is_stale_profile_recovery_command(argv: list[str]) -> bool:
     if command[:2] == ["profile", "use"]:
         return len(command) > 2 and command[2].casefold() == "default"
     return command[:1] == ["uninstall"] and _uninstall_keeps_data(command[1:])
+
+
+def resolve_sudo_user_profile_env(name: str) -> str | None:
+    """Resolve `sudo hermes -p <name>` against the invoking user's home.
+
+    This runs before argparse, so `--run-as-user` is not available yet. For
+    sudo invocations the best signal is SUDO_USER: root is only doing the
+    privileged install/start action; the profile store belongs to the user.
+    """
+    if name == "default":
+        return None
+    from hermes_constants import named_profile_is_live, sudo_invoker_default_home
+
+    sudo_home = sudo_invoker_default_home()
+    if sudo_home is None:
+        return None
+    candidate = sudo_home / "profiles" / name
+    return str(candidate) if named_profile_is_live(candidate) else None

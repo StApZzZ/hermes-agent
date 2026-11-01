@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Профіль:** `{profile}`"
     home: "📂 **Домашня тека:** `{home}`"
     plain: "Профіль: {profile}\nДомашній каталог: {home}"
+  space:
+    header: "Простори:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Просторів поки немає. Створіть на сервері: hermes space create work --new-agent"
+    hint: "Перемкнути: /space <назва> [агент] · вийти: /space off"
+    switched: "Перемкнено на простір {space} — агент {agent}. Він має власну пам'ять і розмову; наступне повідомлення піде туди."
+    cleared: "Ви вийшли з простору: чат знову працює з агентом за замовчуванням."
+    unknown: "Невідомий простір: {name}. Надішліть /space, щоб побачити список."
+    no_agent: "У просторі {space} ще немає агентів. На сервері: hermes space add {space} <profile>"
+    not_member: "{agent} не є агентом простору {space}."
+    not_served: "Агент {agent} зараз не обслуговується цим шлюзом."
+    needs_multiplex: "Для перемикання просторів у чаті потрібен мультиплексний шлюз (gateway.multiplex_profiles: true)."
+    saved_next_session: "Збережено: наступна сесія hermes почнеться в просторі {space} (агент {agent}). Поточна сесія не змінюється."
+    saved_default: "Збережено: наступна сесія hermes почнеться з профілем за замовчуванням."
   reasoning:
     level_default: "medium (за замовчуванням)"
     level_disabled: "none (вимкнено)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Показати ваш рівень доступу до slash-команд (admin / user)"
   profile:
     description: "Показати назву активного профілю та домашній каталог"
+  space:
+    description: "Показати простори (робота, особисте, проєкти) або перемкнутися"
   sessions:
     description: "Переглянути та відновити попередні сеанси"
   config:

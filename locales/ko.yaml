@@ -272,6 +272,20 @@ gateway:
     header: "👤 **프로필:** `{profile}`"
     home: "📂 **홈:** `{home}`"
     plain: "프로필: {profile}\n홈: {home}"
+  space:
+    header: "스페이스:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "아직 스페이스가 없습니다. 호스트에서 만드세요: hermes space create work --new-agent"
+    hint: "전환: /space <이름> [에이전트] · 나가기: /space off"
+    switched: "스페이스 {space}(으)로 전환했습니다 — 에이전트 {agent}. 자체 메모리와 대화를 가지며, 다음 메시지는 그쪽으로 갑니다."
+    cleared: "스페이스에서 나왔습니다: 이 채팅은 기본 에이전트로 돌아갑니다."
+    unknown: "알 수 없는 스페이스: {name}. 목록은 /space 로 확인하세요."
+    no_agent: "스페이스 {space}에 아직 에이전트가 없습니다. 호스트에서: hermes space add {space} <profile>"
+    not_member: "{agent}은(는) 스페이스 {space}의 에이전트가 아닙니다."
+    not_served: "에이전트 {agent}은(는) 지금 이 게이트웨이에서 제공되지 않습니다."
+    needs_multiplex: "채팅에서 스페이스를 전환하려면 멀티플렉스 게이트웨이가 필요합니다 (gateway.multiplex_profiles: true)."
+    saved_next_session: "저장됨: 다음 hermes 세션은 스페이스 {space}(에이전트 {agent})에서 시작합니다. 현재 세션은 그대로입니다."
+    saved_default: "저장됨: 다음 hermes 세션은 기본 프로필로 시작합니다."
   reasoning:
     level_default: "medium (기본값)"
     level_disabled: "none (비활성화됨)"
@@ -1576,6 +1590,8 @@ slash:
     description: "내 슬래시 명령 접근 권한 표시 (admin / user)"
   profile:
     description: "활성 프로필 이름과 홈 디렉터리 표시"
+  space:
+    description: "스페이스(업무, 개인, 프로젝트) 목록 보기 또는 전환"
   sessions:
     description: "이전 세션 탐색 및 재개"
   config:

@@ -177,6 +177,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("whoami", "Show your slash command access (admin / user)", "Info"),
     CommandDef("profile", "Show active profile name and home directory", "Info",
                busy_policy="dispatch", execute="profile"),
+    CommandDef("space", "List spaces (work, personal, projects) or switch to one", "Session",
+               args_hint="[name [agent] | off]", argument_mode="mixed", execute="space", desktop="terminal"),
     CommandDef("sethome", "Set this chat as the home channel", "Session",
                gateway_only=True, aliases=("set-home",), desktop="terminal"),
     CommandDef("resume", "Resume a previously-named session", "Session",

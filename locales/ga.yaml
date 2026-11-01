@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Próifíl:** `{profile}`"
     home: "📂 **Baile:** `{home}`"
     plain: "Próifíl: {profile}\nBaile: {home}"
+  space:
+    header: "Spásanna:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Níl aon spásanna fós. Cruthaigh ceann ar an óstach: hermes space create work --new-agent"
+    hint: "Athraigh: /space <ainm> [gníomhaire] · fág: /space off"
+    switched: "Athraithe go spás {space} — gníomhaire {agent}. Tá a chuimhne agus a chomhrá féin aige; rachaidh do chéad teachtaireacht eile ann."
+    cleared: "D'fhág tú an spás: tá an comhrá seo ar ais ar a ghníomhaire réamhshocraithe."
+    unknown: "Spás anaithnid: {name}. Seol /space don liosta."
+    no_agent: "Níl aon ghníomhairí fós i spás {space}. Ar an óstach: hermes space add {space} <profile>"
+    not_member: "Ní gníomhaire de chuid spás {space} é {agent}."
+    not_served: "Níl an gníomhaire {agent} á fhreastal ag an ngeata seo faoi láthair."
+    needs_multiplex: "Teastaíonn geata ilphléacsáilte chun spásanna a athrú i gcomhrá (gateway.multiplex_profiles: true)."
+    saved_next_session: "Sábháilte: tosóidh an chéad seisiún hermes eile i spás {space} (gníomhaire {agent}). Fanann an seisiún seo mar atá."
+    saved_default: "Sábháilte: tosóidh an chéad seisiún hermes eile leis an bpróifíl réamhshocraithe."
   reasoning:
     level_default: "medium (réamhshocraithe)"
     level_disabled: "none (díchumasaithe)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Taispeáin do rochtain ar orduithe slaise (riarthóir / úsáideoir)"
   profile:
     description: "Taispeáin ainm na próifíle gníomhaí agus an t-eolaire baile"
+  space:
+    description: "Liostaigh spásanna (obair, pearsanta, tionscadail) nó athraigh go ceann"
   sessions:
     description: "Brabhsáil agus atosaigh seisiúin roimhe seo"
   config:

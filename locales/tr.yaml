@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Profil:** `{profile}`"
     home: "📂 **Ana dizin:** `{home}`"
     plain: "Profil: {profile}\nAna dizin: {home}"
+  space:
+    header: "Alanlar:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Henüz alan yok. Sunucuda oluşturun: hermes space create work --new-agent"
+    hint: "Geçiş: /space <ad> [ajan] · çıkış: /space off"
+    switched: "{space} alanına geçildi — ajan {agent}. Kendi belleği ve sohbeti var; sonraki mesajınız oraya gider."
+    cleared: "Alandan çıkıldı: bu sohbet varsayılan ajanına döndü."
+    unknown: "Bilinmeyen alan: {name}. Liste için /space gönderin."
+    no_agent: "{space} alanında henüz ajan yok. Sunucuda: hermes space add {space} <profile>"
+    not_member: "{agent}, {space} alanının ajanı değil."
+    not_served: "{agent} ajanı şu anda bu ağ geçidi tarafından sunulmuyor."
+    needs_multiplex: "Sohbette alan değiştirmek çoklanmış bir ağ geçidi gerektirir (gateway.multiplex_profiles: true)."
+    saved_next_session: "Kaydedildi: sonraki hermes oturumu {space} alanında başlar (ajan {agent}). Bu oturum olduğu gibi kalır."
+    saved_default: "Kaydedildi: sonraki hermes oturumu varsayılan profille başlar."
   reasoning:
     level_default: "medium (varsayılan)"
     level_disabled: "none (devre dışı)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Slash komutu erişiminizi göster (yönetici / kullanıcı)"
   profile:
     description: "Aktif profil adını ve ana dizini göster"
+  space:
+    description: "Alanları listele (iş, kişisel, projeler) veya birine geç"
   sessions:
     description: "Önceki oturumlara göz at ve devam et"
   config:

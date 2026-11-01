@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Profiel:** `{profile}`"
     home: "📂 **Tuiste:** `{home}`"
     plain: "Profiel: {profile}\nTuiste: {home}"
+  space:
+    header: "Ruimtes:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Nog geen ruimtes nie. Skep een op die gasheer: hermes space create work --new-agent"
+    hint: "Wissel: /space <naam> [agent] · verlaat: /space off"
+    switched: "Oorgeskakel na ruimte {space} — agent {agent}. Dit het sy eie geheue en gesprek; jou volgende boodskap gaan soontoe."
+    cleared: "Ruimte verlaat: hierdie klets is terug by sy verstek-agent."
+    unknown: "Onbekende ruimte: {name}. Stuur /space vir die lys."
+    no_agent: "Ruimte {space} het nog geen agente nie. Op die gasheer: hermes space add {space} <profile>"
+    not_member: "{agent} is nie 'n agent van ruimte {space} nie."
+    not_served: "Agent {agent} word nie tans deur hierdie poort bedien nie."
+    needs_multiplex: "Om ruimtes in 'n klets te wissel, is 'n gemultiplekseerde poort nodig (gateway.multiplex_profiles: true)."
+    saved_next_session: "Gestoor: die volgende hermes-sessie begin in ruimte {space} (agent {agent}). Hierdie sessie bly soos dit is."
+    saved_default: "Gestoor: die volgende hermes-sessie begin met die verstekprofiel."
   reasoning:
     level_default: "medium (verstek)"
     level_disabled: "none (gedeaktiveer)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Wys jou skuinsstreep-opdragtoegang (admin / gebruiker)"
   profile:
     description: "Wys die aktiewe profielnaam en tuisgids"
+  space:
+    description: "Lys ruimtes (werk, persoonlik, projekte) of wissel na een"
   sessions:
     description: "Blaai deur vorige sessies en hervat hulle"
   config:

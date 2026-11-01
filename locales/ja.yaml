@@ -272,6 +272,20 @@ gateway:
     header: "👤 **プロファイル:** `{profile}`"
     home: "📂 **ホーム:** `{home}`"
     plain: "プロファイル: {profile}\nホーム: {home}"
+  space:
+    header: "スペース:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "スペースはまだありません。ホストで作成: hermes space create work --new-agent"
+    hint: "切り替え: /space <名前> [エージェント] · 抜ける: /space off"
+    switched: "スペース {space} に切り替えました — エージェント {agent}。独自の記憶と会話を持ちます。次のメッセージはそちらに届きます。"
+    cleared: "スペースを抜けました: このチャットは既定のエージェントに戻ります。"
+    unknown: "不明なスペース: {name}。/space で一覧を表示します。"
+    no_agent: "スペース {space} にはまだエージェントがいません。ホストで: hermes space add {space} <profile>"
+    not_member: "{agent} はスペース {space} のエージェントではありません。"
+    not_served: "エージェント {agent} は現在このゲートウェイで提供されていません。"
+    needs_multiplex: "チャットでスペースを切り替えるには多重化ゲートウェイが必要です (gateway.multiplex_profiles: true)。"
+    saved_next_session: "保存しました: 次の hermes セッションはスペース {space} (エージェント {agent}) で始まります。このセッションはそのままです。"
+    saved_default: "保存しました: 次の hermes セッションは既定のプロファイルで始まります。"
   reasoning:
     level_default: "medium (デフォルト)"
     level_disabled: "none (無効)"
@@ -1576,6 +1590,8 @@ slash:
     description: "自分のスラッシュコマンド権限（admin / user）を表示"
   profile:
     description: "アクティブなプロファイル名とホームディレクトリを表示"
+  space:
+    description: "スペース (仕事、個人、プロジェクト) を一覧表示または切り替え"
   sessions:
     description: "以前のセッションを閲覧して再開"
   config:

@@ -272,6 +272,20 @@ gateway:
     header: "👤 **الملف الشخصي:** `{profile}`"
     home: "📂 **المجلد الرئيسي:** `{home}`"
     plain: "الملف التعريفي: {profile}\nالمجلد الرئيسي: {home}"
+  space:
+    header: "المساحات:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "لا توجد مساحات بعد. أنشئ واحدة على الخادم: hermes space create work --new-agent"
+    hint: "للتبديل: /space <الاسم> [الوكيل] · للخروج: /space off"
+    switched: "تم التبديل إلى المساحة {space} — الوكيل {agent}. لديه ذاكرته ومحادثته الخاصة؛ ستذهب رسالتك التالية إليه."
+    cleared: "غادرت المساحة: عادت هذه المحادثة إلى وكيلها الافتراضي."
+    unknown: "مساحة غير معروفة: {name}. أرسل /space لعرض القائمة."
+    no_agent: "لا يوجد وكلاء في المساحة {space} بعد. على الخادم: hermes space add {space} <profile>"
+    not_member: "{agent} ليس وكيلًا في المساحة {space}."
+    not_served: "الوكيل {agent} غير مخدوم من هذه البوابة حاليًا."
+    needs_multiplex: "يتطلب تبديل المساحات في المحادثة بوابة متعددة الملفات (gateway.multiplex_profiles: true)."
+    saved_next_session: "تم الحفظ: ستبدأ جلسة hermes التالية في المساحة {space} (الوكيل {agent}). تبقى هذه الجلسة كما هي."
+    saved_default: "تم الحفظ: ستبدأ جلسة hermes التالية بالملف الشخصي الافتراضي."
   reasoning:
     level_default: "medium (افتراضي)"
     level_disabled: "none (مُعطّل)"
@@ -1576,6 +1590,8 @@ slash:
     description: "عرض صلاحيات وصولك إلى أوامر السلاش (مشرف / مستخدم)"
   profile:
     description: "عرض اسم الملف التعريفي النشط ومجلده الرئيسي"
+  space:
+    description: "عرض المساحات (العمل، الشخصي، المشاريع) أو التبديل إلى إحداها"
   sessions:
     description: "استعراض الجلسات السابقة واستئنافها"
   config:

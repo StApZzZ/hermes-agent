@@ -347,6 +347,7 @@ from typing import Optional
 from hermes_cli.subcommands.cron import build_cron_parser
 from hermes_cli.subcommands.gateway import build_gateway_parser
 from hermes_cli.subcommands.profile import build_profile_parser
+from hermes_cli.subcommands.space import build_space_parser
 from hermes_cli.subcommands.model import build_model_parser
 from hermes_cli.subcommands.setup import build_setup_parser
 
@@ -516,24 +517,6 @@ def _scan_profile_flag(argv: list) -> tuple:
     return None, 0, None
 
 
-def _resolve_sudo_user_profile_env(name: str) -> str | None:
-    """Resolve `sudo hermes -p <name>` against the invoking user's home.
-
-    This runs before argparse, so `--run-as-user` is not available yet. For
-    sudo invocations the best signal is SUDO_USER: root is only doing the
-    privileged install/start action; the profile store belongs to the user.
-    """
-    if name == "default":
-        return None
-    from hermes_constants import named_profile_is_live, sudo_invoker_default_home
-
-    sudo_home = sudo_invoker_default_home()
-    if sudo_home is None:
-        return None
-    candidate = sudo_home / "profiles" / name
-    return str(candidate) if named_profile_is_live(candidate) else None
-
-
 def _under_gateway_supervisor(argv: list) -> bool:
     """A supervisor-launched gateway child must NOT follow the sticky active_profile.
 
@@ -611,11 +594,14 @@ def _apply_profile_override() -> None:
     if (profile_name is None and not _under_gateway_supervisor(argv)
             and not _startup_fast.is_desktop_ssh_backend_argv(argv)
             and not _s6_supervised_gateway_run(argv)):
+        # A folder bound to a space (``hermes space bind``) beats the sticky profile.
+        from hermes_cli.spaces import profile_for_cwd
+        profile_name = profile_for_cwd(argv)
         try:
             from hermes_constants import get_default_hermes_root
 
             active_path = get_default_hermes_root() / "active_profile"
-            if active_path.exists():
+            if profile_name is None and active_path.exists():
                 name = active_path.read_text(encoding="utf-8-sig").strip()
                 if name and name != "default":
                     profile_name = name  # consume stays 0: nothing to strip
@@ -630,7 +616,8 @@ def _apply_profile_override() -> None:
 
         hermes_home = resolve_profile_env(profile_name)
     except FileNotFoundError as exc:
-        hermes_home = _resolve_sudo_user_profile_env(profile_name)
+        from hermes_cli.main_profile_recovery import resolve_sudo_user_profile_env
+        hermes_home = resolve_sudo_user_profile_env(profile_name)
         error = str(exc)
         if not hermes_home and from_sticky_profile:
             from hermes_cli.main_profile_recovery import is_stale_profile_recovery_command
@@ -2783,7 +2770,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
         "model", "monitoring", "pairing", "pause", "peer", "pets", "plugins", "portal", "profile",
-        "project", "proxy", "remote",
+        "project", "proxy", "remote", "space",
         "prompt-size",
         "resume",
         "send", "sessions", "setup",
@@ -3423,6 +3410,7 @@ def _build_cli_parser():
     build_acp_parser(subparsers, cmd_acp=cmd_acp)
     build_remote_parser(subparsers)
     build_profile_parser(subparsers, cmd_profile=cmd_profile)
+    build_space_parser(subparsers)
     build_completion_parser(subparsers, cmd_completion=cmd_completion, parser=parser)
     build_dashboard_parser(
         subparsers,

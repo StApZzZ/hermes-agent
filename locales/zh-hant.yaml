@@ -272,6 +272,20 @@ gateway:
     header: "👤 **設定檔：** `{profile}`"
     home: "📂 **主目錄：** `{home}`"
     plain: "設定檔：{profile}\n主目錄：{home}"
+  space:
+    header: "空間："
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "還沒有空間。在主機上建立：hermes space create work --new-agent"
+    hint: "切換：/space <名稱> [代理] · 離開：/space off"
+    switched: "已切換到空間 {space} — 代理 {agent}。它有自己的記憶與對話；你的下一則訊息會送到那裡。"
+    cleared: "已離開空間：此聊天恢復使用預設代理。"
+    unknown: "未知空間：{name}。傳送 /space 查看列表。"
+    no_agent: "空間 {space} 還沒有代理。在主機上：hermes space add {space} <profile>"
+    not_member: "{agent} 不是空間 {space} 的代理。"
+    not_served: "代理 {agent} 目前未由此閘道提供服務。"
+    needs_multiplex: "在聊天中切換空間需要多工閘道（gateway.multiplex_profiles: true）。"
+    saved_next_session: "已儲存：下一個 hermes 工作階段將在空間 {space}（代理 {agent}）中啟動。目前工作階段保持不變。"
+    saved_default: "已儲存：下一個 hermes 工作階段將使用預設設定檔啟動。"
   reasoning:
     level_default: "medium（預設）"
     level_disabled: "none（已停用）"
@@ -1576,6 +1590,8 @@ slash:
     description: "顯示你的指令存取權限（admin／user）"
   profile:
     description: "顯示目前設定檔名稱與主目錄"
+  space:
+    description: "列出空間（工作、個人、專案）或切換到其中一個"
   sessions:
     description: "瀏覽並恢復先前的工作階段"
   config:

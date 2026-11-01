@@ -235,8 +235,8 @@ class GatewayAuthorizationMixin:
         return self._primary_adapters() if profile_name == primary_profile else {}
 
     def _is_shared_bot_satellite(self, profile_name: str) -> bool:
-        """A served profile with NO adapter of its own that a ``profile_routes`` entry targets through the
-        default profile's bot: it drains through the primary's adapters (gateway/AGENTS.md). Its
+        """A served profile with NO adapter of its own that a ``profile_routes`` entry (or a chat's ``/space``
+        selection) targets through the default profile's bot: it drains through the primary's adapters (gateway/AGENTS.md). Its
         ``_profile_adapters`` entry is the ``{}`` startup placeholder; a secondary connected on ANY
         platform is its own credential boundary and never borrows the primary. Restored/cached sources
         carry no transport ref, so this is what keeps heartbeats, completions and goal notices for such a
@@ -248,7 +248,10 @@ class GatewayAuthorizationMixin:
         if (getattr(self, "_profile_failed_platforms", None) or {}).get(profile_name):
             return False
         routes = getattr(config, "profile_routes", None) or []
-        if not any(r.enabled and r.profile == profile_name and r.bot_profile is None for r in routes):
+        from hermes_cli.spaces import profiles_selected_via
+        primary = (getattr(self, "_primary_profile_name", None) or "").strip() or "default"
+        if not (any(r.enabled and r.profile == profile_name and r.bot_profile is None for r in routes)
+                or profile_name in profiles_selected_via(primary)):  # a chat's ``/space`` choice
             return False
         from gateway.run import _multiplex_profile_homes
         try:

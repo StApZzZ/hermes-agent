@@ -529,6 +529,9 @@ def _memory_parts(agent: Any) -> list[str]:
             block = agent._memory_store.format_for_system_prompt(kind) if enabled else None
             if block:
                 parts.append(block)
+        space_block = _space_part(agent)
+        if space_block:
+            parts.append(space_block)
     # External memory provider system prompt block (additive to built-in). Gated on the same check
     # ``inject_memory_provider_tools`` uses so we never advertise provider tools that the agent's toolset
     # configuration has already gated off (#81014).
@@ -545,6 +548,16 @@ def _memory_parts(agent: Any) -> list[str]:
             if _ext_mem_block:
                 parts.append(_ext_mem_block)
     return parts
+
+
+def _space_part(agent: Any) -> Optional[str]:
+    """The agent's space (``hermes_cli/spaces.py``): its fellow agents and the shared space notes."""
+    try:
+        from hermes_cli.spaces import system_prompt_block
+        return system_prompt_block(_active_profile_name(agent, _ambient_plugin_profile_name))
+    except Exception:  # health: allow BLE001 -- an unreadable space must never break prompt assembly
+        logger.debug("Space block skipped", exc_info=True)
+        return None
 
 
 def _identity_parts(agent: Any, ctx_len: Optional[int]) -> tuple[list[str], bool]:

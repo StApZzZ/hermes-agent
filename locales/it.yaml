@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Profilo:** `{profile}`"
     home: "📂 **Home:** `{home}`"
     plain: "Profilo: {profile}\nHome: {home}"
+  space:
+    header: "Spazi:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Nessuno spazio ancora. Creane uno sull'host: hermes space create work --new-agent"
+    hint: "Cambia: /space <nome> [agente] · esci: /space off"
+    switched: "Passato allo spazio {space} — agente {agent}. Ha memoria e conversazione proprie; il tuo prossimo messaggio andrà lì."
+    cleared: "Sei uscito dallo spazio: questa chat torna al suo agente predefinito."
+    unknown: "Spazio sconosciuto: {name}. Invia /space per l'elenco."
+    no_agent: "Lo spazio {space} non ha ancora agenti. Sull'host: hermes space add {space} <profile>"
+    not_member: "{agent} non è un agente dello spazio {space}."
+    not_served: "L'agente {agent} non è servito da questo gateway in questo momento."
+    needs_multiplex: "Cambiare spazio in una chat richiede un gateway multiplexato (gateway.multiplex_profiles: true)."
+    saved_next_session: "Salvato: la prossima sessione hermes parte nello spazio {space} (agente {agent}). Questa sessione resta com'è."
+    saved_default: "Salvato: la prossima sessione hermes parte con il profilo predefinito."
   reasoning:
     level_default: "medio (predefinito)"
     level_disabled: "nessuno (disattivato)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Mostra il tuo livello di accesso ai comandi slash (admin / user)"
   profile:
     description: "Mostra il nome del profilo attivo e la sua directory home"
+  space:
+    description: "Elenca gli spazi (lavoro, personale, progetti) o passa a uno"
   sessions:
     description: "Sfoglia e riprendi le sessioni precedenti"
   config:

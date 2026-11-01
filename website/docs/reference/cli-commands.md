@@ -1962,6 +1962,25 @@ hermes profile update work
 hermes -p work chat -q "Hello from work profile"
 ```
 
+## `hermes space`
+
+```bash
+hermes space <subcommand>
+```
+
+Group agents (profiles) into [spaces](../user-guide/spaces.md) — work, personal, projects — and switch between them.
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` (default) | List spaces, their agents (primary first) and bound folders. |
+| `current` | Show the space this shell runs in and whether the current folder is bound. |
+| `create <name> [--kind K] [--title T] [--agent P]... [--new-agent [P] [--clone-from S] [--keep-memory]] [--path DIR]...` | Create a space, optionally with existing agents, a new agent (memory starts empty unless `--keep-memory`) and bound folders. |
+| `use <name> [agent]` | Make the space's agent the sticky default (`use default` leaves spaces). |
+| `add <name> <profile> [--primary]` / `remove <profile>` | Move an agent into a space / take it out. |
+| `bind <name> [path]` / `unbind <name> [path]` | Bind a folder: `hermes` launched inside it runs the space's primary agent. |
+| `note <name> <text>` / `notes <name> [--remove N]` | Shared notes every agent of the space reads at session start. |
+| `show <name>` / `set <name> [--kind] [--title]` / `delete <name> [-y]` | Inspect, edit or delete a space (agents are kept). |
+
 ## `hermes completion`
 
 ```bash

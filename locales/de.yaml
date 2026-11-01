@@ -272,6 +272,20 @@ gateway:
     header: "👤 **Profil:** `{profile}`"
     home: "📂 **Stammverzeichnis:** `{home}`"
     plain: "Profil: {profile}\nStammverzeichnis: {home}"
+  space:
+    header: "Bereiche:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Noch keine Bereiche. Auf dem Host anlegen: hermes space create work --new-agent"
+    hint: "Wechseln: /space <Name> [Agent] · verlassen: /space off"
+    switched: "Zum Bereich {space} gewechselt — Agent {agent}. Er hat eigenes Gedächtnis und eigenen Verlauf; deine nächste Nachricht geht dorthin."
+    cleared: "Bereich verlassen: dieser Chat nutzt wieder seinen Standard-Agenten."
+    unknown: "Unbekannter Bereich: {name}. Sende /space für die Liste."
+    no_agent: "Bereich {space} hat noch keine Agenten. Auf dem Host: hermes space add {space} <profile>"
+    not_member: "{agent} ist kein Agent des Bereichs {space}."
+    not_served: "Agent {agent} wird von diesem Gateway gerade nicht bedient."
+    needs_multiplex: "Bereichswechsel im Chat braucht ein Multiplex-Gateway (gateway.multiplex_profiles: true)."
+    saved_next_session: "Gespeichert: die nächste hermes-Sitzung startet im Bereich {space} (Agent {agent}). Diese Sitzung bleibt unverändert."
+    saved_default: "Gespeichert: die nächste hermes-Sitzung startet mit dem Standardprofil."
   reasoning:
     level_default: "medium (Standard)"
     level_disabled: "none (deaktiviert)"
@@ -1576,6 +1590,8 @@ slash:
     description: "Ihren Slash-Befehl-Zugriff anzeigen (admin / user)"
   profile:
     description: "Name des aktiven Profils und Stammverzeichnis anzeigen"
+  space:
+    description: "Bereiche (Arbeit, Privat, Projekte) anzeigen oder wechseln"
   sessions:
     description: "Frühere Sitzungen durchsuchen und fortsetzen"
   config:

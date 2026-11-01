@@ -146,6 +146,7 @@ Type `/` in the CLI to open the autocomplete menu. Built-in commands are case-in
 | `/debug` | Upload debug report (system info + logs) and get shareable links. Also available in messaging. |
 | `/update` | Update Hermes Agent to the latest version. |
 | `/profile` | Show active profile name and home directory |
+| `/space [name [agent] \| off]` | List [spaces](../user-guide/spaces.md), or pick the space (and agent) the **next** session starts in. The running session keeps its agent. |
 
 ### Exit
 
@@ -265,6 +266,7 @@ The messaging gateway supports the following built-in commands inside Telegram, 
 | `/topup` | Show your Nous balance and manage billing on the portal. |
 | `/login` | Sign in with a Nous account. **Paired direct messages only** — in a group, channel, or broadcast-shaped platform Hermes refuses. On Slack use `/hermes login`. |
 | `/whoami` | Show your slash command access level (admin / user). |
+| `/space [name [agent] \| off]` | List [spaces](../user-guide/spaces.md), or run your messages in this chat under a space's agent (its own memory and conversation). `/space off` returns to the chat's default agent. Needs a multiplexed gateway. |
 | `/insights [days]` | Show usage analytics. |
 | `/reasoning [level\|show\|hide\|full\|clamp] [--global]` | Change reasoning effort (levels up to `max` / `ultra`) or toggle reasoning display (`full` / `clamp` included). `--global` persists to config. |
 | `/voice [on\|off\|tts\|join\|channel\|leave\|status]` | Control spoken replies in chat. `join`/`channel`/`leave` manage Discord voice-channel mode. |

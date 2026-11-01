@@ -275,6 +275,20 @@ gateway:
     header: "👤 **Profil:** `{profile}`"
     home: "📂 **Kezdőkönyvtár:** `{home}`"
     plain: "Profil: {profile}\nHome: {home}"
+  space:
+    header: "Terek:"
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "Még nincsenek terek. Hozz létre egyet a gépen: hermes space create work --new-agent"
+    hint: "Váltás: /space <név> [ügynök] · kilépés: /space off"
+    switched: "Átváltva a(z) {space} térre — ügynök: {agent}. Saját memóriája és beszélgetése van; a következő üzeneted oda megy."
+    cleared: "Kiléptél a térből: ez a csevegés visszatér az alapértelmezett ügynökéhez."
+    unknown: "Ismeretlen tér: {name}. A listához küldd: /space"
+    no_agent: "A(z) {space} térnek még nincs ügynöke. A gépen: hermes space add {space} <profile>"
+    not_member: "{agent} nem a(z) {space} tér ügynöke."
+    not_served: "A(z) {agent} ügynököt ez az átjáró jelenleg nem szolgálja ki."
+    needs_multiplex: "A terek csevegésben való váltásához multiplexelt átjáró kell (gateway.multiplex_profiles: true)."
+    saved_next_session: "Mentve: a következő hermes munkamenet a(z) {space} térben indul (ügynök: {agent}). Ez a munkamenet változatlan marad."
+    saved_default: "Mentve: a következő hermes munkamenet az alapértelmezett profillal indul."
   reasoning:
     level_default: "medium (alapértelmezett)"
     level_disabled: "none (kikapcsolva)"
@@ -1593,6 +1607,8 @@ slash:
     description: "Slash parancs jogosultságod (admin / felhasználó)"
   profile:
     description: "Az aktív profil nevének és home könyvtárának megjelenítése"
+  space:
+    description: "Terek listázása (munka, személyes, projektek) vagy váltás"
   sessions:
     description: "Korábbi munkamenetek böngészése és folytatása"
   config:

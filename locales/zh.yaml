@@ -272,6 +272,20 @@ gateway:
     header: "👤 **配置文件：** `{profile}`"
     home: "📂 **主目录：** `{home}`"
     plain: "配置档：{profile}\n主目录：{home}"
+  space:
+    header: "空间："
+    item: "{marker} {space} [{kind}] — {agents}"
+    none: "还没有空间。在主机上创建：hermes space create work --new-agent"
+    hint: "切换：/space <名称> [代理] · 退出：/space off"
+    switched: "已切换到空间 {space} — 代理 {agent}。它有自己的记忆和对话；你的下一条消息将发到那里。"
+    cleared: "已退出空间：此聊天恢复使用默认代理。"
+    unknown: "未知空间：{name}。发送 /space 查看列表。"
+    no_agent: "空间 {space} 还没有代理。在主机上：hermes space add {space} <profile>"
+    not_member: "{agent} 不是空间 {space} 的代理。"
+    not_served: "代理 {agent} 目前未由此网关提供服务。"
+    needs_multiplex: "在聊天中切换空间需要多路复用网关（gateway.multiplex_profiles: true）。"
+    saved_next_session: "已保存：下一个 hermes 会话将在空间 {space}（代理 {agent}）中启动。当前会话保持不变。"
+    saved_default: "已保存：下一个 hermes 会话将使用默认配置文件启动。"
   reasoning:
     level_default: "medium（默认）"
     level_disabled: "none（已禁用）"
@@ -1576,6 +1590,8 @@ slash:
     description: "显示你的斜杠命令权限（admin / user）"
   profile:
     description: "显示当前配置档名称与主目录"
+  space:
+    description: "列出空间（工作、个人、项目）或切换到其中一个"
   sessions:
     description: "浏览并恢复以前的会话"
   config:

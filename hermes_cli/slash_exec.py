@@ -76,6 +76,22 @@ def _exec_profile(ctx: CommandContext) -> CommandReply:
                         data={"profile": profile_name, "home": home_display})
 
 
+def _exec_space(ctx: CommandContext) -> CommandReply:
+    """Core /space text — spaces with their agents; ``options.current_profile`` marks the current one."""
+    from hermes_cli.spaces import list_spaces
+    spaces = list_spaces()
+    if not spaces:
+        return CommandReply(t("gateway.space.none"), data={"spaces": []})
+    current = str(ctx.options.get("current_profile") or "")
+    lines = [t("gateway.space.header")]
+    for space in spaces:
+        agents = ", ".join([f"{space.agents[0]}*", *space.agents[1:]]) if space.agents else "—"
+        marker = "◆" if current in space.agents else "·"
+        lines.append(t("gateway.space.item", marker=marker, space=space.label, kind=space.kind, agents=agents))
+    lines.append(t("gateway.space.hint"))
+    return CommandReply("\n".join(lines), data={"spaces": [space.name for space in spaces]})
+
+
 def _exec_autoprune(ctx: CommandContext) -> CommandReply:
     """Core /autoprune text — record the auto-prune decision or show its state."""
     from hermes_cli.prune_advisor import run_command
@@ -187,6 +203,7 @@ EXECUTORS: dict[str, Callable[[CommandContext], CommandReply]] = {
     "profile": _exec_profile,
     "bundles": _exec_bundles,
     "autoprune": _exec_autoprune,
+    "space": _exec_space,
     "gateway_help": _exec_help,
     "gateway_commands": _exec_commands}
 
