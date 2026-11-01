@@ -8,6 +8,8 @@ profile island (config, MEMORY.md/USER.md, sessions, skills). What a space adds:
 - space attributes in ``<root>/spaces.yaml`` (title, kind, bound folders);
 - shared space notes in ``<root>/spaces/<name>/SPACE.md`` that every agent of the space reads at
   session start (frozen into the system prompt like MEMORY.md, never re-read mid-session);
+- the shared memory ``<root>/spaces/SHARED.md`` that every agent reads the same way, unless its
+  space opts out (``shared_memory: false``, e.g. a work bot that colleagues talk to);
 - per-chat lane selections in ``<root>/spaces/chat_selections.json`` that a multiplexed gateway
   consults to run one sender's lane under a space's agent (``/space`` in a chat).
 
@@ -27,8 +29,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 SPACE_KINDS = ("work", "personal", "project", "other")
-NOTE_DELIMITER = "\n§\n"  # same entry delimiter as MEMORY.md
 SPACE_NOTES_CHAR_LIMIT = 3000
+SHARED_MEMORY_CHAR_LIMIT = 3000
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 
@@ -39,6 +41,7 @@ class Space:
     title: str = ""
     paths: tuple[str, ...] = ()
     agents: tuple[str, ...] = ()  # primary first
+    shared_memory: bool = True  # members read SHARED.md
 
     @property
     def primary(self) -> Optional[str]:
@@ -66,6 +69,10 @@ def space_dir(name: str) -> Path:
 
 def space_notes_path(name: str) -> Path:
     return space_dir(name) / "SPACE.md"
+
+
+def shared_memory_path() -> Path:
+    return _root() / "spaces" / "SHARED.md"
 
 
 def selections_path() -> Path:
@@ -156,7 +163,8 @@ def _build(name: str, attrs: dict, agents: list[str]) -> Space:
     paths = attrs.get("paths") if isinstance(attrs.get("paths"), list) else []
     return Space(name=name, kind=kind if kind in SPACE_KINDS else "other",
                  title=str(attrs.get("title") or "").strip(),
-                 paths=tuple(str(p) for p in paths if p), agents=tuple(agents))
+                 paths=tuple(str(p) for p in paths if p), agents=tuple(agents),
+                 shared_memory=attrs.get("shared_memory") is not False)
 
 
 # Queries
@@ -234,7 +242,8 @@ def create_space(name: str, *, kind: str = "other", title: str = "") -> Space:
     return get_space(canon)
 
 
-def update_space(name: str, *, kind: Optional[str] = None, title: Optional[str] = None) -> Space:
+def update_space(name: str, *, kind: Optional[str] = None, title: Optional[str] = None,
+                 shared_memory: Optional[bool] = None) -> Space:
     canon = get_space(name).name
     if kind is not None and kind not in SPACE_KINDS:
         raise ValueError(f"Unknown kind '{kind}' (one of: {', '.join(SPACE_KINDS)}).")
@@ -247,6 +256,11 @@ def update_space(name: str, *, kind: Optional[str] = None, title: Optional[str] 
             attrs["title"] = title.strip()
         else:
             attrs.pop("title", None)
+    if shared_memory is not None:
+        if shared_memory:
+            attrs.pop("shared_memory", None)
+        else:
+            attrs["shared_memory"] = False
     _write_registry(registry)
     return get_space(canon)
 
@@ -309,65 +323,59 @@ def unbind_path(name: str, path: Path) -> Space:
     return get_space(space.name)
 
 
-# Shared space notes (SPACE.md)
+# Shared space notes (SPACE.md) and shared memory (SHARED.md); stores live in memory_scopes
 
 def read_notes(name: str) -> list[str]:
-    path = space_notes_path(name)
-    try:
-        text = path.read_text(encoding="utf-8-sig")
-    except FileNotFoundError:
-        return []
-    return [entry.strip() for entry in text.split(NOTE_DELIMITER) if entry.strip()]
-
-
-def _write_notes(name: str, notes: list[str]) -> None:
-    from utils import atomic_write_text
-    path = space_notes_path(name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_text(path, NOTE_DELIMITER.join(notes) + ("\n" if notes else ""))
+    from hermes_cli.memory_scopes import read_entries, space_store
+    return read_entries(space_store(name))
 
 
 def add_note(name: str, text: str) -> list[str]:
-    """Append a shared note. Notes enter every member's system prompt, so the memory tool's strict
-    injection/exfiltration scan applies and the store is bounded."""
-    from tools.threat_patterns import first_threat_message
-    space = get_space(name)
-    entry = (text or "").strip()
-    if not entry:
-        raise ValueError("Note is empty.")
-    threat = first_threat_message(entry, scope="strict")
-    if threat:
-        raise ValueError(f"Refusing note: {threat}")
-    notes = read_notes(space.name)
-    if entry in notes:
-        return notes
-    notes.append(entry)
-    total = len(NOTE_DELIMITER.join(notes))
-    if total > SPACE_NOTES_CHAR_LIMIT:
-        raise ValueError(
-            f"Space notes would be {total} chars (limit {SPACE_NOTES_CHAR_LIMIT}). "
-            f"Remove or shorten notes first: hermes space notes {space.name}")
-    _write_notes(space.name, notes)
-    return notes
+    """Append a shared note (strict threat scan, bounded store); returns the space's notes."""
+    from hermes_cli.memory_scopes import add_entries, read_entries, space_store
+    store = space_store(name)
+    add_entries(store, [text])
+    return read_entries(store)
 
 
 def remove_note(name: str, index: int) -> str:
     """Remove the 1-based note *index*; returns the removed text."""
-    space = get_space(name)
-    notes = read_notes(space.name)
+    from hermes_cli.memory_scopes import read_entries, remove_entries, space_store
+    store = space_store(name)
+    notes = read_entries(store)
     if not 1 <= index <= len(notes):
-        raise IndexError(f"Space '{space.name}' has {len(notes)} note(s); no #{index}.")
-    removed = notes.pop(index - 1)
-    _write_notes(space.name, notes)
-    return removed
+        raise IndexError(f"Space '{normalize_space_name(name)}' has {len(notes)} note(s); no #{index}.")
+    remove_entries(store, [notes[index - 1]])
+    return notes[index - 1]
 
 
-def system_prompt_block(profile: str) -> Optional[str]:
-    """The space block for *profile*'s system prompt, or None when it belongs to no space.
-    Read once when the prompt is built (session start), so it never invalidates the cached prefix."""
-    space = space_of_profile(profile)
-    if space is None:
+def _prompt_safe(store) -> list[str]:
+    """Entries of *store* minus any that fail the strict scan (a hand edit bypasses the write check)."""
+    from hermes_cli.memory_scopes import read_entries
+    from tools.memory_tool_store import _scan_memory_content
+    entries = read_entries(store)
+    safe = [e for e in entries if not _scan_memory_content(e)]
+    if len(safe) < len(entries):
+        logger.warning("Dropped %d entr(y/ies) of %s from the system prompt: threat pattern",
+                       len(entries) - len(safe), store.label)
+    return safe
+
+
+def _shared_memory_block() -> Optional[str]:
+    from hermes_cli.memory_scopes import shared_store, usage
+    from tools.memory_tool_store import ENTRY_DELIMITER
+    entries = _prompt_safe(shared_store())
+    if not entries:
         return None
+    sep = "═" * 46
+    return (f"{sep}\nSHARED MEMORY (known to all your agents) "
+            f"[{usage(entries):,}/{SHARED_MEMORY_CHAR_LIMIT:,} chars]\n{sep}\n"
+            "Facts that hold in every space. Save one with `hermes memory add shared \"<fact>\"` "
+            "(applies from the next session).\n" + ENTRY_DELIMITER.join(entries))
+
+
+def _space_block(space: Space, profile: str) -> str:
+    from hermes_cli.memory_scopes import space_store
     others = [a for a in space.agents if a != profile]
     lines = [
         f"SPACE: {space.label} [{space.kind}]",
@@ -376,10 +384,19 @@ def system_prompt_block(profile: str) -> Optional[str]:
         "Keep this space's information inside it. Save a fact every agent of the space should know with "
         f"`hermes space note {space.name} \"<fact>\"` (applies from the next session).",
     ]
-    notes = read_notes(space.name)
+    notes = _prompt_safe(space_store(space.name))
     if notes:
         lines += ["Shared space notes:", *(f"- {n}" for n in notes)]
     return "\n".join(lines)
+
+
+def system_prompt_block(profile: str) -> Optional[str]:
+    """Shared memory (unless the space opts out) plus the space block for *profile*, or None.
+    Read once when the prompt is built (session start), so it never invalidates the cached prefix."""
+    space = space_of_profile(profile)
+    parts = [_shared_memory_block() if space is None or space.shared_memory else None,
+             _space_block(space, profile) if space is not None else None]
+    return "\n\n".join(p for p in parts if p) or None
 
 
 # Chat lane selections (multiplexed gateway, ``/space`` in a chat)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+
 
 def build_space_parser(subparsers) -> None:
     """Attach the ``space`` subcommand to ``subparsers``."""
@@ -43,10 +45,13 @@ def build_space_parser(subparsers) -> None:
     show = sub.add_parser("show", help="Show one space")
     show.add_argument("name")
 
-    edit = sub.add_parser("set", help="Change a space's kind or title")
+    edit = sub.add_parser("set", help="Change a space's kind, title or shared-memory access")
     edit.add_argument("name")
     edit.add_argument("--kind", choices=SPACE_KINDS, default=None)
     edit.add_argument("--title", default=None)
+    edit.add_argument("--shared-memory", action=argparse.BooleanOptionalAction, default=None,
+                      help="Whether the space's agents read the shared memory (default: yes; turn it off "
+                           "for a bot other people talk to)")
 
     add = sub.add_parser("add", help="Put an agent into a space (moves it out of its previous space)")
     add.add_argument("name", help="Space name")

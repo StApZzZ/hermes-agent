@@ -91,7 +91,7 @@ The install also ships `hermes-agent`, a minimal runner that sends one query and
 | `hermes bundles` | Group several skills under a single `/<name>` slash command. See [Skill Bundles](../user-guide/features/skills.md#skill-bundles). |
 | `hermes curator` | Background skill maintenance — status, run, pause, pin. See [Curator](../user-guide/features/curator.md). |
 | `hermes journey` (aliases `learning`, `memory-graph`) | Timeline of learned skills + memories over time. |
-| `hermes memory` | Configure external memory provider. Plugin-specific subcommands (e.g. `hermes honcho`) register automatically when their provider is active. |
+| `hermes memory` | Shared memory, copying/moving memory between agents and spaces, external memory providers. Plugin-specific subcommands (e.g. `hermes honcho`) register automatically when their provider is active. |
 | `hermes acp` | Run Hermes as an ACP server for editor integration. |
 | `hermes mcp` | Manage MCP server configurations and run Hermes as an MCP server. |
 | `hermes connectors` | List, connect, rename and disconnect hosted connector accounts. |
@@ -1569,7 +1569,7 @@ See [Hooks](../user-guide/features/hooks.md) for event signatures and payload sh
 hermes memory <subcommand>
 ```
 
-Set up and manage external memory provider plugins. Bundled providers: retaindb, byterover; honcho, hindsight, supermemory, mem0, openviking and holographic (plugin catalog) after `hermes plugins install <name>` (`hermes update` does this automatically for a provider already named in `memory.provider`). Only one external provider can be active at a time. Built-in memory (MEMORY.md/USER.md) is always active.
+Manage curated memory across agents and spaces, and external memory provider plugins. Bundled providers: retaindb, byterover; honcho, hindsight, supermemory, mem0, openviking and holographic (plugin catalog) after `hermes plugins install <name>` (`hermes update` does this automatically for a provider already named in `memory.provider`). Only one external provider can be active at a time. Built-in memory (MEMORY.md/USER.md) is always active.
 
 Subcommands:
 
@@ -1578,6 +1578,15 @@ Subcommands:
 | `setup` | Interactive provider selection and configuration. |
 | `status` | Show current memory provider config. |
 | `off` | Disable external provider (built-in only). |
+| `reset [--target all\|memory\|user] [-y]` | Erase this profile's built-in memory. |
+| `list [<store>]` (alias `ls`) | Every memory store with its size, or the numbered entries of one store. |
+| `add <store> <text>` | Add an entry; a bare profile means its `MEMORY.md`. `hermes memory add shared "…"` writes the shared memory every agent reads. |
+| `remove <store> <numbers>` | Remove entries by number, e.g. `1,3-5`. |
+| `copy <from> <to> [--entries N \| --match TEXT] [--dry-run]` | Copy all or some entries to another agent, a space or the shared memory. |
+| `move <from> <to> [--entries N \| --match TEXT] [--dry-run]` | Same, then remove them from the source. |
+
+A store is `<profile>` (both `MEMORY.md` and `USER.md`), `<profile>:memory`, `<profile>:user`,
+`space:<name>` or `shared`. See [Spaces → Moving memory](../user-guide/spaces.md#moving-memory).
 
 :::info Provider-specific subcommands
 When an external memory provider is active, it may register its own top-level `hermes <provider>` command for provider-specific management (e.g. `hermes honcho` when Honcho is active). Inactive providers do not expose their subcommands. Run `hermes --help` to see what's currently wired in.

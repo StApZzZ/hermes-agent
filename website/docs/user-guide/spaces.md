@@ -9,7 +9,7 @@ lets you switch between those areas in one step, from the terminal or from a cha
 
 Spaces sit on top of [profiles](./profiles.md). Every agent in a space is still its own profile,
 with its own `config.yaml`, keys, `SOUL.md`, `MEMORY.md`/`USER.md`, sessions and skills. A space
-never merges two agents' memory. It adds four things:
+never merges two agents' memory. It adds:
 
 - **Switching**: `hermes space use work` makes the work space's agent the default for plain
   `hermes` commands; `/space work` does the same for your messages in a chat.
@@ -18,6 +18,10 @@ never merges two agents' memory. It adds four things:
 - **Shared space notes**: short facts every agent of the space reads at the start of each session
   (`hermes space note work "…"`).
 - **Grouping**: `hermes space list` shows which agents belong where, with a primary agent per space.
+
+Next to spaces there is a **shared memory** every agent reads, and `hermes memory copy` /
+`hermes memory move` carry all or part of one agent's memory to another agent, a space or the
+shared memory (see [Shared memory](#shared-memory) and [Moving memory](#moving-memory)).
 
 ## Quick start
 
@@ -106,6 +110,63 @@ characters and notes go through the same injection/exfiltration scan as the memo
 Agents are told about the command, so you can also ask an agent to "remember this for the whole
 work space".
 
+## Shared memory
+
+Facts that hold everywhere — your name, language, time zone — go into the shared memory, which
+every agent reads at session start, whether or not it belongs to a space:
+
+```bash
+hermes memory add shared "Name: Alex. Reply in Russian. Time zone: Europe/Moscow"
+hermes memory list shared
+hermes memory remove shared 2
+```
+
+It lives in `~/.hermes/spaces/SHARED.md`, is capped at 3,000 characters, goes through the same
+injection scan as the memory tool, and enters the prompt right after the agent's own memory. A
+space can opt out, for example a work bot that colleagues talk to and that should not know your
+personal facts:
+
+```bash
+hermes space set work --no-shared-memory    # --shared-memory turns it back on
+```
+
+## Moving memory
+
+Every memory store has an address:
+
+| Address | Store |
+|---------|-------|
+| `<profile>` | Both of an agent's stores: `MEMORY.md` (its notes) and `USER.md` (what it knows about you). |
+| `<profile>:memory`, `<profile>:user` | One of them. |
+| `space:<name>` | The space's shared notes. |
+| `shared` | The shared memory. |
+
+`hermes memory list` shows every store with its size; `hermes memory list <address>` shows the
+numbered entries. Then copy or move all of them, some numbers, or the ones containing a word:
+
+```bash
+# Everything the default agent knows, into the new work agent (MEMORY → MEMORY, USER → USER)
+hermes memory copy default work
+
+# Only entries 2 to 4 of the notes, taken out of the source
+hermes memory move default:memory work --entries 2-4
+
+# Every entry mentioning ACME, into the project space's notes
+hermes memory move work space:acme --match acme
+
+# Promote facts about you to the shared memory; preview first
+hermes memory move default:user shared --match name --match language --dry-run
+```
+
+A copy leaves the source alone; a move removes the entries from the source only after every
+destination has been written. Entries the destination already holds are skipped. A transfer that
+would push a destination over its character limit is refused before anything changes. Writes use
+the memory tool's own file lock, so moving memory while an agent is running loses nothing; agents
+see the change from their next session.
+
+`hermes space create … --clone-from <profile>` starts the new agent with empty memory; copy what
+fits with `hermes memory copy <profile> <agent> --match …`, or pass `--keep-memory` to take all of it.
+
 ## Other commands
 
 | Command | Description |
@@ -113,7 +174,7 @@ work space".
 | `hermes space` / `hermes space list` | List spaces, their agents and bound folders. |
 | `hermes space current` | Show the space this shell runs in and whether the current folder is bound. |
 | `hermes space show <name>` | Details of one space. |
-| `hermes space set <name> [--kind K] [--title T]` | Change kind or title. |
+| `hermes space set <name> [--kind K] [--title T] [--[no-]shared-memory]` | Change kind, title, or whether its agents read the shared memory. |
 | `hermes space bind <name> [path]` / `unbind <name> [path]` | Bind or unbind a folder (default: the current directory). The deepest bound folder wins. |
 | `hermes space delete <name> [-y]` | Forget the space, its notes and chat selections. Its agents stay as plain profiles. |
 
@@ -124,9 +185,10 @@ work space".
 | `~/.hermes/spaces.yaml` | Space titles, kinds and bound folders. |
 | `~/.hermes/profiles/<agent>/profile.yaml` | The agent's `space` membership. |
 | `~/.hermes/spaces/<name>/SPACE.md` | Shared space notes. |
+| `~/.hermes/spaces/SHARED.md` | The shared memory. |
 | `~/.hermes/spaces/chat_selections.json` | Which space each chat lane chose with `/space`. |
 
-All four sit under the installation root shared by every profile, not inside any one profile.
+All of them sit under the installation root shared by every profile, not inside any one profile.
 
 ## Spaces, profiles and projects
 

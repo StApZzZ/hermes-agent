@@ -63,6 +63,9 @@ def cmd_memory(args):
         _cmd_memory_off()
     elif sub == "reset":
         _cmd_memory_reset(args)
+    elif sub in ("list", "ls", "add", "remove", "copy", "move"):
+        from hermes_cli.memory_scope_cmd import cmd_memory_scope
+        cmd_memory_scope(args)
     else:
         from hermes_cli.memory_setup import memory_command
         memory_command(args)

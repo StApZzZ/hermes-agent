@@ -59,7 +59,8 @@ def _print_space(space: sp.Space) -> None:
     print(f"Agents:  {_agents_label(space)}")
     print(f"Folders: {', '.join(space.paths) or '—'}")
     notes = sp.read_notes(space.name)
-    print(f"Notes:   {len(notes)} shared note(s) — hermes space notes {space.name}\n")
+    print(f"Notes:   {len(notes)} shared note(s) — hermes space notes {space.name}")
+    print(f"Shared memory: {'read' if space.shared_memory else 'off'} — hermes memory list shared\n")
 
 
 def _create_agent(space_name: str, args) -> str:
@@ -76,6 +77,7 @@ def _create_agent(space_name: str, args) -> str:
         for fname in ("MEMORY.md", "USER.md"):
             (get_profile_dir(name) / "memories" / fname).unlink(missing_ok=True)
         print(f"Memory of '{name}' starts empty (cloned config only; --keep-memory keeps it).")
+        print(f"Bring over only what fits: hermes memory copy {args.clone_from} {name} --match <text>")
     return name
 
 
@@ -120,7 +122,7 @@ def _space_show(args) -> None:
 
 
 def _space_set(args) -> None:
-    _print_space(sp.update_space(args.name, kind=args.kind, title=args.title))
+    _print_space(sp.update_space(args.name, kind=args.kind, title=args.title, shared_memory=args.shared_memory))
 
 
 def _space_add(args) -> None:
