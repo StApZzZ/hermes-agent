@@ -1,0 +1,3 @@
+# VS Code on the machine you sit at, when Hermes runs on a remote host: hermes-deploy installs these
+# with `code --install-extension`. One ID per line, `#` comments, `id@1.2.3` pins a version.
+ms-vscode-remote.remote-ssh

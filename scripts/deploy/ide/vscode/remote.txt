@@ -1,0 +1,11 @@
+# VS Code where Hermes runs. Remote host: hermes-deploy writes the list to remote.SSH.defaultExtensions
+# and VS Code installs it into the server on connect. Local deploy: installed with --install-extension.
+anthropic.claude-code
+openai.chatgpt
+# Hermes over ACP (`hermes acp`); hermes-deploy writes acp.agents into the settings.
+formulahendry.acp-client
+redhat.vscode-yaml
+editorconfig.editorconfig
+# The Hermes checkout itself is Python.
+ms-python.python
+charliermarsh.ruff

@@ -10,6 +10,15 @@ Hermes, Claude Code, зависимости, сборки и кэши работ
 не означает. Сгенерированный `config --proxy` запускает ACP через `ssh` напрямую,
 вообще без локального Python.
 
+Всё описанное ниже, от пакетов на сервере до открытой папки в VS Code, делает одна команда —
+[`scripts/deploy/hermes-deploy.sh`](../scripts/deploy/README.md) (Windows: `hermes-deploy.ps1`):
+
+```sh
+scripts/deploy/hermes-deploy.sh --host <server> --name devbox --root-login
+```
+
+Разделы ниже — то, что она делает, по шагам, и ручной путь.
+
 ## 1. Подготовка Linux
 
 Используйте непривилегированную учётную запись, например `dev`.
