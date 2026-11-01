@@ -289,8 +289,9 @@ export default function SystemPage() {
       api.getCurator(),
       api.getPortal(),
       // Cached (non-forced) check so the version row shows update status on
-      // load without a separate effect / a forced network round-trip.
-      api.checkHermesUpdate(false),
+      // load without a separate effect / a forced network round-trip. Passive:
+      // nobody asked, so `updates.check: false` keeps it off the network.
+      api.checkHermesUpdate(false, true),
       api.getGatewayMigratePlan(),
     ])
       .then(([s, st, m, p, c, h, cur, prt, upd, mig]) => {

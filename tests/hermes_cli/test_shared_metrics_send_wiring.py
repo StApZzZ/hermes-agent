@@ -74,6 +74,8 @@ def runtime():
 
 
 def _config(**shared):
+    # No built-in collector: sending needs an explicit endpoint.
+    shared.setdefault("endpoint", "https://collector.test/v1")
     return {"telemetry": {"shared_metrics": shared}}
 
 

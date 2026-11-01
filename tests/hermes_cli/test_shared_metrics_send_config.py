@@ -23,10 +23,9 @@ class TestDefaults:
         assert shared["enabled"] is False
         assert shared["send"] is False
 
-    def test_default_endpoint_is_production(self):
+    def test_there_is_no_default_collector(self):
         shared = DEFAULT_CONFIG["telemetry"]["shared_metrics"]
-        assert shared["endpoint"] == DEFAULT_ENDPOINT
-        assert DEFAULT_ENDPOINT.startswith("https://")
+        assert shared["endpoint"] == DEFAULT_ENDPOINT == ""
 
     def test_empty_config_sends_nothing(self):
         resolved = resolve_send_config({})
@@ -44,8 +43,14 @@ class TestSendRequiresCollection:
         assert resolved.send is False
 
     def test_send_with_collection_sends(self):
-        resolved = resolve_send_config(_config(enabled=True, send=True))
+        resolved = resolve_send_config(_config(enabled=True, send=True, endpoint="https://example.test/v1"))
         assert resolved.send is True
+
+    def test_send_without_an_endpoint_is_refused(self):
+        """No built-in collector: consent alone must never upload anywhere."""
+        resolved = resolve_send_config(_config(enabled=True, send=True))
+        assert resolved.enabled is True
+        assert resolved.send is False
 
     def test_send_without_collection_is_refused(self):
         resolved = resolve_send_config(_config(enabled=False, send=True))
@@ -76,10 +81,11 @@ class TestEndpointPrecedence:
             monkeypatch.setenv(name, "https://attacker.test/v1")
         resolved = resolve_send_config(_config(enabled=True, send=True))
         assert resolved.endpoint == DEFAULT_ENDPOINT
+        assert resolved.send is False
 
-    def test_blank_endpoint_falls_back_to_production(self):
+    def test_blank_endpoint_sends_nothing(self):
         resolved = resolve_send_config(_config(enabled=True, send=True, endpoint="   "))
-        assert resolved.endpoint == DEFAULT_ENDPOINT
+        assert resolved.send is False
 
     def test_endpoint_is_stripped(self):
         resolved = resolve_send_config(

@@ -3,6 +3,8 @@
 Every surface reads and writes the same two keys in the profile's config.yaml:
 ``telemetry.shared_metrics.enabled`` (collect locally) and ``.send`` (upload daily). The question
 counts as answered once either key is written explicitly; the shipped defaults are not an answer.
+There is no default collector: until the owner sets ``.endpoint`` there is nothing to send to, so no
+surface asks (``hermes setup telemetry`` stays the way to opt in to local collection).
 Every answer also writes ``offer_version``. A "No thanks" without it predates the type-ahead fix
 (an Enter pressed during startup could save it unseen), so that profile is asked once more, with
 the reason, and any response (Esc or dismiss included) settles it for good.
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # (label, enabled, send): the Desktop strip's three equal answers, in its order.
 OFFER_CHOICES = (
-    ("Collect and send to Nous", True, True),
+    ("Collect and send to the configured endpoint", True, True),
     ("Collect locally only", True, False),
     ("No thanks", False, False),
 )
@@ -36,9 +38,9 @@ _OFFER_DESCRIPTION = "\n".join((
     "model routes, token totals, feature use and coarse machine facts. A failed or",
     "finished fresh install is noted on this machine and counted only if you opt in.",
     "Never prompts, files, paths,",
-    "setting values or error text. Collection stays on this machine; sending to Nous is",
-    "a separate choice, and apart from that install note, data from before you opt in",
-    "is never sent.",
+    "setting values or error text. Collection stays on this machine; sending to your",
+    "endpoint is a separate choice, and apart from that install note, data from before",
+    "you opt in is never sent.",
     f"Details: {DOCS_URL}",
     "Change it any time: hermes setup telemetry",
 ))
@@ -55,19 +57,26 @@ def _section(cfg: Any) -> dict:
 OFFER_VERSION = 2
 
 
+def _endpoint(section: dict) -> str:
+    endpoint = section.get("endpoint")
+    return endpoint.strip() if isinstance(endpoint, str) else ""
+
+
 def consent_state(raw_cfg: Any) -> dict:
     """``{enabled, send, decided, reask}`` from a RAW config mapping (no defaults merged). ``reask``:
     an "off" answer from before ``OFFER_VERSION`` that may never have been seen; it reads undecided
-    so every surface offers it once more. An opt-in was always a deliberate pick and stays."""
+    so every surface offers it once more. An opt-in was always a deliberate pick and stays.
+    Without a configured endpoint the question reads decided: there is no collector to consent to."""
     section = _section(raw_cfg)
     enabled = section.get("enabled") is True
     answered = "enabled" in section or "send" in section
     reask = answered and not enabled and section.get("offer_version") != OFFER_VERSION
+    has_endpoint = bool(_endpoint(section))
     return {
         "enabled": enabled,
         "send": enabled and section.get("send") is True,
-        "decided": answered and not reask,
-        "reask": reask,
+        "decided": (answered and not reask) or not has_endpoint,
+        "reask": reask and has_endpoint,
     }
 
 
@@ -77,8 +86,9 @@ def _current_state() -> dict:
     return consent_state(read_raw_config())
 
 
-def set_answer(target: dict, enabled: bool, send: bool) -> None:
-    """Write one answer into a config mapping: both opt-ins plus the offer version that settles it."""
+def set_answer(target: dict, enabled: bool, send: bool, endpoint: str | None = None) -> None:
+    """Write one answer into a config mapping: both opt-ins plus the offer version that settles it,
+    and the collector URL when the caller asked for one."""
     telemetry = target.get("telemetry")
     if not isinstance(telemetry, dict):
         telemetry = target["telemetry"] = {}
@@ -87,9 +97,11 @@ def set_answer(target: dict, enabled: bool, send: bool) -> None:
         section = telemetry["shared_metrics"] = {}
     section["enabled"], section["send"] = enabled, enabled and send
     section["offer_version"] = OFFER_VERSION
+    if endpoint is not None:
+        section["endpoint"] = endpoint
 
 
-def save_consent(enabled: bool, send: bool, config: dict | None = None) -> None:
+def save_consent(enabled: bool, send: bool, config: dict | None = None, *, endpoint: str | None = None) -> None:
     """Write both keys into the user's raw config.yaml now. ``save_config`` strips values equal
     to the shipped defaults, so a "No thanks" (both false) saved through it vanished and the
     profile was asked again on every surface. ``config`` (a caller's in-memory copy, e.g. the
@@ -105,10 +117,10 @@ def save_consent(enabled: bool, send: bool, config: dict | None = None) -> None:
     send = enabled and send
     config_path = get_config_path()
     user_config = require_readable_config_before_write(config_path)
-    set_answer(user_config, enabled, send)
+    set_answer(user_config, enabled, send, endpoint)
     _write_user_config(config_path, user_config)
     if config is not None:
-        set_answer(config, enabled, send)
+        set_answer(config, enabled, send, endpoint)
     # Unconditional: a send key already false may still have an open consent window.
     _record_send_consent_change(enabled=send)
     if not enabled:
@@ -142,7 +154,7 @@ def offer_consent(config: dict | None = None, *, reask: bool = False) -> bool:
         return False
     _, enabled, send = OFFER_CHOICES[idx]
     save_consent(enabled, send, config)
-    outcome = "collected and sent to Nous" if send else "collected on this machine only" if enabled else "off"
+    outcome = "collected and sent" if send else "collected on this machine only" if enabled else "off"
     print_success(f"Shared metrics {outcome}. Change it any time with `hermes setup telemetry`.")
     return True
 

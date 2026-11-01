@@ -68,7 +68,7 @@ def _keyed_keenable_env(monkeypatch):
         "agent.web_search_provider.get_provider_env",
         lambda name: "kn-real" if name == "KEENABLE_API_KEY" else "",
     )
-    monkeypatch.setattr(web_tools, "_load_web_config", lambda: {"backend": "keenable"})
+    monkeypatch.setattr(web_tools, "_load_web_config", lambda: {"backend": "keenable", "keyless_rescue": True})
     monkeypatch.setattr(
         "agent.web_search_registry._keyless_tier_enabled", lambda: True
     )
@@ -114,6 +114,14 @@ class TestEligibility:
 
         assert web_tools_rescue._rescue_eligible(_SearxProvider()) is True
 
+    def test_rescue_is_off_unless_opted_in(self, monkeypatch):
+        """A query meant for the user's own backend never reaches the vendor ring by default."""
+        class _SearxProvider(_KeyedBoomProvider):
+            name = "searxng"
+
+        monkeypatch.setattr(web_tools, "_load_web_config", lambda: {"backend": "searxng"})
+        assert web_tools_rescue._rescue_eligible(_SearxProvider()) is False
+
     def test_config_gate_disables(self, monkeypatch):
         monkeypatch.setattr(
             web_tools, "_load_web_config",
@@ -156,7 +164,7 @@ class TestSearchRescue:
         assert "connection reset" in out["data"]["backend_error"]
 
     def test_gateway_selected_firecrawl_failure_is_rescued(self, monkeypatch):
-        monkeypatch.setattr(web_tools, "_load_web_config", lambda: {"backend": "firecrawl"})
+        monkeypatch.setattr(web_tools, "_load_web_config", lambda: {"backend": "firecrawl", "keyless_rescue": True})
         monkeypatch.setattr(
             "agent.web_search_provider.get_provider_env", lambda name: ""
         )

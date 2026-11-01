@@ -10,6 +10,9 @@ import pytest
 
 from hermes_cli.auth import resolve_provider, AuthError
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 def _login(monkeypatch, provider_id):
     """Simulate a logged-in OAuth active_provider in auth.json."""

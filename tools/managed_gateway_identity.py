@@ -1,8 +1,10 @@
 """Caller identity for requests to the first-party gateways: who is calling, and which turn asked.
 
 ``user_agent()`` goes on every request. The correlation headers name the conversation, turn and tool
-call, so they go only to connector routes and only when the profile has opted in to sending
-telemetry. The gateway strips every ``x-nous-`` header before it calls a vendor.
+call, so they go only to connector routes and only when the profile sends telemetry to the same
+operator (a Nous collector): they exist to join gateway logs with those packages, and a profile
+sending to its own collector has nothing on the gateway side to join. The gateway strips every
+``x-nous-`` header before it calls a vendor.
 """
 
 from __future__ import annotations
@@ -78,10 +80,14 @@ def user_agent() -> str:
 
 
 def _send_consented() -> bool:
+    from urllib.parse import urlparse
+
     from hermes_cli.config import read_raw_config_readonly
     from hermes_cli.observability.shared_metrics_send_config import resolve_send_config
 
-    return resolve_send_config(read_raw_config_readonly() or {}).send is True
+    send = resolve_send_config(read_raw_config_readonly() or {})
+    host = (urlparse(send.endpoint).hostname or "") if send.send else ""
+    return host == "nousresearch.com" or host.endswith(".nousresearch.com")
 
 
 def _conversation_id() -> Optional[str]:
@@ -93,7 +99,7 @@ def _conversation_id() -> Optional[str]:
 
 def correlation_headers(call: Optional[CallRef] = None) -> dict[str, str]:
     """``x-request-id`` (fresh per HTTP attempt) and the conversation, turn and tool call ids, or
-    ``{}`` when the profile has not opted in to sending telemetry."""
+    ``{}`` unless the profile sends telemetry to a Nous collector."""
     if not _send_consented():
         return {}
     headers = {REQUEST_ID_HEADER: str(uuid.uuid4())}

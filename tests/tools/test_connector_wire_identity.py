@@ -41,10 +41,13 @@ def _client(transport, **kwargs):
     )
 
 
-def _consent(send: bool):
+def _consent(send: bool, endpoint: str = "https://telemetry.nousresearch.com/v1/telemetry"):
     path = get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"telemetry:\n  shared_metrics:\n    enabled: true\n    send: {str(send).lower()}\n")
+    path.write_text(
+        f"telemetry:\n  shared_metrics:\n    enabled: true\n    send: {str(send).lower()}\n"
+        f"    endpoint: {endpoint}\n"
+    )
 
 
 @pytest.fixture
@@ -88,6 +91,13 @@ def test_correlation_ids_go_only_with_send_consent(send):
     assert first["x-nous-hermes-turn"] == "turn-1" and first["x-nous-hermes-tool-call"] == "call-1"
     assert first["x-request-id"] != second["x-request-id"]  # one id per HTTP attempt
     assert not any(k.startswith("x-hermes-") for k in first)  # the gateway strips only x-nous-
+
+
+def test_correlation_ids_never_go_when_metrics_go_to_an_own_collector():
+    """The ids exist to join gateway logs with the same operator's packages; a profile sending
+    to its own collector must not hand its session ids to the gateway."""
+    _consent(True, endpoint="https://metrics.example.test/v1")
+    assert set(connector_headers(CallRef(turn_id="t", tool_call_id="c"))) == {"User-Agent"}
 
 
 def test_session_header_is_the_conversation_root(monkeypatch):

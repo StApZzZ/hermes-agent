@@ -174,6 +174,20 @@ class TestFallbackChain:
         assert result is not None
         assert calls == [self.PRIMARY, self.FALLBACK]
 
+    def test_an_own_catalog_url_never_falls_back_to_upstream(self, isolated_home):
+        from hermes_cli import model_catalog
+        calls: list[str] = []
+        own = "https://catalog.example.test/model-catalog.json"
+
+        def fake_fetch(url, timeout):
+            calls.append(url)  # every URL fails: the own catalog is down
+
+        with patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
+            result = model_catalog._fetch_manifest_with_fallback(own, 5.0)
+
+        assert result is None
+        assert calls == [own]
+
 
     def test_get_catalog_uses_fallback_chain(self, isolated_home):
         """End-to-end: ``get_catalog`` routes through the fallback helper so

@@ -17,6 +17,9 @@ from hermes_cli.auth import _auth_file_path
 from tests.hermes_cli.test_anon_upgrade import (
     EMAIL, FREE_PICK, PORTAL, WELCOME, _shared_store, _write_model_config, free_account, portal)
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 __all__ = ["free_account", "portal"]
 
 def _drain(**kwargs):

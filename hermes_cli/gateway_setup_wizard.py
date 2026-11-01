@@ -182,9 +182,10 @@ def _telegram_auto_setup(token_var: str) -> tuple[bool, object]:
     print()
     _gw()._print_info_lines(
         "  Telegram can be configured automatically with a managed bot:",
-        "  [1] Automatic (scan QR → confirm in Telegram → done)", "  [2] Manual BotFather token",
+        "  [1] Automatic via the Nous onboarding service (it creates the bot and sees its token)",
+        "  [2] Manual BotFather token (default)",
     )
-    if _gw().prompt("  Choice [1/2]", default="1").strip() != "1":
+    if _gw().prompt("  Choice [1/2]", default="2").strip() != "1":
         return False, None
     try:
         from hermes_cli.telegram_managed_bot import (

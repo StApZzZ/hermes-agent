@@ -1046,9 +1046,9 @@ export const api = {
     fetchJSON<ActionResponse>("/api/gateway/migrate", { method: "POST" }),
   updateHermes: () =>
     fetchJSON<ActionResponse>("/api/hermes/update", { method: "POST" }),
-  checkHermesUpdate: (force = false) =>
+  checkHermesUpdate: (force = false, passive = false) =>
     fetchJSON<UpdateCheckResponse>(
-      `/api/hermes/update/check${force ? "?force=true" : ""}`,
+      `/api/hermes/update/check${force ? "?force=true" : passive ? "?passive=true" : ""}`,
     ),
   getActionStatus: (name: string, lines = 200) =>
     fetchJSON<ActionStatusResponse>(

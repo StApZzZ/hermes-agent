@@ -16,6 +16,34 @@
   <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
 </p>
 
+## About this fork
+
+<p align="center">
+  <a href="https://github.com/StApZzZ/hermes-agent"><img src="https://img.shields.io/badge/Fork-StApZzZ%2Fhermes--agent-181717?style=for-the-badge&logo=github" alt="Fork: StApZzZ/hermes-agent"></a>
+  <a href="https://github.com/StApZzZ"><img src="https://img.shields.io/badge/Maintained%20by-Alexander%20Gomanov-blueviolet?style=for-the-badge" alt="Maintained by Alexander Gomanov"></a>
+  <a href="https://github.com/NousResearch/hermes-agent"><img src="https://img.shields.io/badge/Upstream-NousResearch%2Fhermes--agent-lightgrey?style=for-the-badge" alt="Upstream: NousResearch/hermes-agent"></a>
+</p>
+
+**A privacy-first fork of Hermes Agent, maintained by [Alexander Gomanov](https://github.com/StApZzZ).** Nothing leaves your machine for the vendor unless you turn it on and name the target yourself. On top of that, the fork runs Hermes over the Codex, Claude Code and Gemini subscription CLIs and develops on a remote Linux server from VS Code. Everything else is upstream Hermes Agent by [Nous Research](https://nousresearch.com); its original README follows below.
+
+<table>
+<tr><td><b>No phone-home telemetry</b></td><td>Shared metrics have no default collector: <code>telemetry.shared_metrics.send</code> uploads only to your own <code>telemetry.shared_metrics.endpoint</code>, and no surface (CLI, TUI, Desktop, dashboard) asks for consent until you set one. <code>hermes setup telemetry</code> asks for the collector URL. Session correlation headers go to the Nous connector gateway only when your collector is Nous's.</td></tr>
+<tr><td><b>No silent vendor accounts</b></td><td>The Nous free tier is opt-in (<code>nous.guest: false</code>): Hermes never creates an anonymous Nous Portal account on the model's first connector call, and never routes web search through Nous for one.</td></tr>
+<tr><td><b>Your backends stay yours</b></td><td>A failed call on your own web backend (e.g. a self-hosted SearXNG) is no longer resent to third-party free tiers (<code>web.keyless_rescue: false</code>). Your own <code>model_catalog.url</code> never falls back to the upstream copy. Telegram setup defaults to your own BotFather token instead of the Nous onboarding service, which would see the bot token.</td></tr>
+<tr><td><b>Update checks you control</b></td><td>The dashboard's page-load check honours <code>updates.check: false</code>, like the CLI banner. A checkout of this fork tracks its own <code>origin</code>, not Nous release feeds.</td></tr>
+<tr><td><b>Subscription CLIs as providers</b></td><td><code>codex-cli</code>, <code>claude-cli</code> and <code>gemini-cli</code> run Hermes over your signed-in official CLIs: Hermes stays the agent (history, memory, tools), the CLI produces the next model response. <code>hermes auth add|status|logout &lt;engine&gt;-cli</code> drive each CLI's own account commands.</td></tr>
+<tr><td><b>Remote development</b></td><td><code>hermes remote</code> opens a Linux workspace in VS Code over Remote-SSH and runs Claude Code, Codex, Gemini or Hermes ACP there in persistent tmux sessions, with <code>doctor</code> checks. <code>scripts/remote-dev/</code> hardens the server and pulls daily backups. Guide: <a href="docs/REMOTE-DEVELOPMENT-RU.md">docs/REMOTE-DEVELOPMENT-RU.md</a>.</td></tr>
+</table>
+
+Install this fork instead of upstream (Linux, macOS, WSL2):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/StApZzZ/hermes-agent/feat/remote-development/scripts/install.sh \
+  | HERMES_REPO_URL=https://github.com/StApZzZ/hermes-agent.git bash -s -- --channel main --branch feat/remote-development
+```
+
+---
+
 **The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
 
 Use any model you want — [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers). Switch with `hermes model` — no code changes, no lock-in.

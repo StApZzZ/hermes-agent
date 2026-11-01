@@ -8,17 +8,18 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
-#: Production ingest endpoint. Overridable through config only — deliberately NOT by an
-#: environment variable: AGENTS.md reserves HERMES_* for secrets, and an inherited variable
-#: could silently redirect consented metrics to any host with nothing visible in config.
-#: Tests and the staging E2E write this key into a throwaway profile instead.
-DEFAULT_ENDPOINT = "https://telemetry.nousresearch.com/v1/telemetry"
+#: No built-in ingest endpoint: packages go only to a collector the owner names in
+#: ``telemetry.shared_metrics.endpoint``. Config only — deliberately NOT an environment variable:
+#: AGENTS.md reserves HERMES_* for secrets, and an inherited variable could silently redirect
+#: consented metrics to any host with nothing visible in config.
+DEFAULT_ENDPOINT = ""
 
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "[::1]"})
 
-# Module-level latch: the enabled/send mismatch is a static misconfiguration,
-# so it is reported once per process instead of on every hook fire.
+# Module-level latches: both mismatches are static misconfigurations,
+# so each is reported once per process instead of on every hook fire.
 _warned_send_without_collection = False
+_warned_send_without_endpoint = False
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ class SendConfig:
     enabled: bool
     #: Transmission is on AND permitted (that is, collection is also on).
     send: bool
-    #: Where packages are POSTed.
+    #: Where packages are POSTed; empty when the owner configured no collector.
     endpoint: str
 
 
@@ -45,12 +46,12 @@ def _endpoint_is_safe(endpoint: str) -> bool:
 
 
 def resolve_send_config(config: dict | None) -> SendConfig:
-    """Resolve transmission settings from config (endpoint: config > production default).
+    """Resolve transmission settings from config. Sending needs an explicit endpoint.
 
     ``send`` is False whenever transmission cannot legitimately happen, so callers never
     have to re-check the combination.
     """
-    global _warned_send_without_collection
+    global _warned_send_without_collection, _warned_send_without_endpoint
 
     raw = config if isinstance(config, dict) else {}
     telemetry = raw.get("telemetry")
@@ -74,9 +75,18 @@ def resolve_send_config(config: dict | None) -> SendConfig:
         return SendConfig(enabled=False, send=False, endpoint=DEFAULT_ENDPOINT)
 
     endpoint = shared.get("endpoint")
-    if not isinstance(endpoint, str) or not endpoint.strip():
-        endpoint = DEFAULT_ENDPOINT
-    endpoint = endpoint.strip()
+    endpoint = endpoint.strip() if isinstance(endpoint, str) else DEFAULT_ENDPOINT
+
+    if send_requested and not endpoint:
+        if not _warned_send_without_endpoint:
+            _warned_send_without_endpoint = True
+            logger.error(
+                "telemetry.shared_metrics.send is true but no "
+                "telemetry.shared_metrics.endpoint is set — there is no default "
+                "collector, so nothing is sent. Set your own endpoint or turn "
+                "sending off."
+            )
+        return SendConfig(enabled=enabled, send=False, endpoint=endpoint)
 
     if send_requested and not _endpoint_is_safe(endpoint):
         logger.error(

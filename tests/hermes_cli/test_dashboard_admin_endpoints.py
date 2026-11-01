@@ -826,6 +826,19 @@ class TestUpdateCheckEndpoint:
         # git/pip installs can apply the update in place from the dashboard.
         assert body["can_apply"] is True
 
+    def test_page_load_check_honours_updates_check_but_check_now_does_not(self, monkeypatch):
+        """The System page's load-time check is passive, so ``updates.check: false`` keeps it off
+        the network like the CLI banner's; "Check now" (force) is the user asking and always runs."""
+        monkeypatch.setattr(_cfg_mod, "detect_install_method", lambda *a, **k: "git")
+        seen = []
+        monkeypatch.setattr("hermes_cli.source_check.check_for_updates",
+                            lambda **kw: seen.append(kw["passive"]) or {"behind": 0, "commits": []})
+
+        self.client.get("/api/hermes/update/check?passive=true")
+        self.client.get("/api/hermes/update/check?force=true&passive=true")
+
+        assert seen == [True, False]
+
 
     def test_managed_runtime_dashboard_is_not_applyable(self, monkeypatch):
 

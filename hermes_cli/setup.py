@@ -511,8 +511,8 @@ def setup_tools(config: dict, first_install: bool = False):
 
 
 _SEND_CONSENT_EXPLAINER = (
-    "", "Sending uploads each daily package to the Nous telemetry",
-    "service. Packages carry your profile-scoped install ID, a",
+    "", "Sending uploads each daily package to a collector you run",
+    "(there is no default). Packages carry your profile-scoped install ID, a",
     "stable random UUID that identifies this profile across days",
     "(it contains no personal information and is reset by deleting",
     "the shared-metrics directory). Only packages whose entire",
@@ -540,7 +540,7 @@ def setup_telemetry(config: dict):
           "machine facts (RAM range, GPU type, version age and channel, updates behind,",
           "local model server yes/no). Never prompts, files, paths, setting values or",
           "error text.",
-          "Collection is local. Sending them to Nous is a separate opt-in.")
+          "Collection is local. Sending them to your own collector is a separate opt-in.")
     # The answer is written to config.yaml here, not by the caller's later save: that save strips
     # values equal to the defaults, so a "no" would vanish and every surface would ask again.
     from hermes_cli.observability.shared_metrics_consent import save_consent
@@ -555,9 +555,15 @@ def setup_telemetry(config: dict):
         return
     print_success("Local shared metrics enabled.")
     _info(*_SEND_CONSENT_EXPLAINER)
-    save_consent(True, prompt_yes_no("Send shared metrics to Nous?", default=shared_metrics.get("send") is True), config)
+    current = shared_metrics.get("endpoint") if isinstance(shared_metrics.get("endpoint"), str) else ""
+    if not prompt_yes_no("Send shared metrics to your own collector?", default=shared_metrics.get("send") is True):
+        save_consent(True, False, config)
+        print_info("Sending shared metrics disabled (collection stays local).")
+        return
+    endpoint = prompt("Collector URL (https://, or http://localhost)", default=current or None).strip()
+    save_consent(True, bool(endpoint), config, endpoint=endpoint)
     if shared_metrics["send"]:
-        print_success("Sending shared metrics enabled.")
+        print_success(f"Sending shared metrics to {endpoint}.")
     else:
         print_info("Sending shared metrics disabled (collection stays local).")
 

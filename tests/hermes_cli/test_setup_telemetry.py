@@ -19,10 +19,35 @@ def test_setup_telemetry_enables_shared_metrics(monkeypatch):
         "hermes_cli.setup.prompt_yes_no",
         lambda _question, default: not default,
     )
+    monkeypatch.setattr("hermes_cli.setup.prompt", lambda _question, default=None: "https://metrics.example.test/v1")
 
     setup_telemetry(config)
 
-    assert config["telemetry"]["shared_metrics"]["enabled"] is True
+    shared = config["telemetry"]["shared_metrics"]
+    assert shared["enabled"] is True and shared["send"] is True
+    assert shared["endpoint"] == "https://metrics.example.test/v1"
+
+
+def test_setup_telemetry_without_a_collector_url_keeps_metrics_local(monkeypatch):
+    from hermes_cli.config import read_raw_config
+
+    config = {}
+    monkeypatch.setattr("hermes_cli.setup.prompt_yes_no", lambda _question, default: True)
+    monkeypatch.setattr("hermes_cli.setup.prompt", lambda _question, default=None: "")
+
+    setup_telemetry(config)
+
+    assert config["telemetry"]["shared_metrics"]["send"] is False
+    assert read_raw_config()["telemetry"]["shared_metrics"]["send"] is False
+
+
+def test_no_surface_asks_without_an_own_collector():
+    """There is no default collector, so an unanswered profile without an endpoint reads decided
+    and neither the CLI nor the Desktop strip offers sending anywhere."""
+    from hermes_cli.observability.shared_metrics_consent import consent_state
+
+    assert consent_state({})["decided"] is True
+    assert consent_state({"telemetry": {"shared_metrics": {"endpoint": "https://m.test/v1"}}})["decided"] is False
 
 
 def test_disabling_collection_closes_the_send_consent_window(monkeypatch, tmp_path):
@@ -96,8 +121,10 @@ def test_no_answer_survives_the_callers_later_config_save(monkeypatch):
 
 
 def test_chat_offer_asks_an_undecided_profile_once(monkeypatch):
-    from hermes_cli.config import read_raw_config
+    from hermes_cli.config import read_raw_config, save_config
     from hermes_cli.observability import shared_metrics_consent as consent
+
+    save_config({"telemetry": {"shared_metrics": {"endpoint": "https://m.test/v1"}}}, strip_defaults=False)
 
     asked = []
     monkeypatch.setattr("hermes_cli.curses_ui.curses_radiolist", lambda *a, **k: asked.append(a) or 1)
@@ -113,6 +140,10 @@ def test_chat_offer_asks_an_undecided_profile_once(monkeypatch):
 
     assert len(asked) == 1
     assert consent.consent_state(read_raw_config()) == {"enabled": True, "send": False, "decided": True, "reask": False}
+
+    save_config({"telemetry": {"shared_metrics": {}}}, strip_defaults=False)
+    consent.offer_consent_before_chat(argparse.Namespace())
+    assert len(asked) == 1, "asked with no collector configured"
 
 
 def test_offer_drops_keys_typed_before_it_appeared(monkeypatch):
@@ -141,11 +172,14 @@ def test_unseen_no_thanks_is_asked_once_more_and_then_settled(monkeypatch):
     monkeypatch.delenv("HERMES_DESKTOP", raising=False)
     monkeypatch.delenv("HERMES_NONINTERACTIVE", raising=False)
 
-    save_config({"telemetry": {"shared_metrics": {"enabled": True, "send": False}}}, strip_defaults=False)
+    endpoint = "https://m.test/v1"
+    save_config({"telemetry": {"shared_metrics": {"enabled": True, "send": False, "endpoint": endpoint}}},
+                strip_defaults=False)
     consent.offer_consent_before_chat(argparse.Namespace())
     assert shown == []
 
-    save_config({"telemetry": {"shared_metrics": {"enabled": False, "send": False}}}, strip_defaults=False)
+    save_config({"telemetry": {"shared_metrics": {"enabled": False, "send": False, "endpoint": endpoint}}},
+                strip_defaults=False)
     consent.offer_consent_before_chat(argparse.Namespace())
     consent.offer_consent_before_chat(argparse.Namespace())
 

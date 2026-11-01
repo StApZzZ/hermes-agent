@@ -33,8 +33,12 @@ class TestMenuLabel:
 
 
     def test_sending_state_names_the_destination(self):
+        label = _shared_metrics_menu_label(_config(enabled=True, send=True, endpoint="https://m.example.test/v1"))
+        assert "sending to m.example.test" in label
+
+    def test_send_without_an_endpoint_reads_local(self):
         label = _shared_metrics_menu_label(_config(enabled=True, send=True))
-        assert "sending to Nous" in label
+        assert "collecting locally" in label
 
 
 class TestToggle:
@@ -43,6 +47,9 @@ class TestToggle:
         saved = {}
         monkeypatch.setattr(
             "hermes_cli.setup.prompt_yes_no", lambda *_a, **_k: True
+        )
+        monkeypatch.setattr(
+            "hermes_cli.setup.prompt", lambda *_a, **_k: "https://m.example.test/v1"
         )
         monkeypatch.setattr(
             "hermes_cli.setup._record_send_consent_change", lambda **_k: None

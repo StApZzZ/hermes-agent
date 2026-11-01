@@ -18,6 +18,9 @@ from hermes_cli import anon_auth
 from hermes_cli.auth import _load_auth_store, resolve_provider
 from tests.hermes_cli.anon_portal import PORTAL, WELCOME, claimed_trial, install_portal, make_jwt as _jwt
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 @pytest.fixture
 def portal(monkeypatch, tmp_path):

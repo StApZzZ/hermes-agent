@@ -20,6 +20,9 @@ import pytest
 from agent.secret_scope import build_profile_secret_scope, reset_secret_scope, set_secret_scope
 from hermes_constants import get_hermes_home, reset_hermes_home_override, set_hermes_home_override
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 class _Resp(io.BytesIO):
     def __enter__(self):

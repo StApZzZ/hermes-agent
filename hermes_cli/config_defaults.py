@@ -400,10 +400,10 @@ DEFAULT_CONFIG = {
         # rotate round-robin across exa, parallel, firecrawl, keenable public free tiers, failing
         # over on rate limits. Never pre-empts a configured/keyed backend. false = disable.
         "keyless_fallback": True,
-        # One-shot rescue: when the chosen/keyed backend fails a call, THAT call retries once on the
-        # keyless ring; the next call tries the chosen backend again (no sticky failover). Off when
-        # keyless_fallback is false.
-        "keyless_rescue": True,
+        # One-shot rescue (opt-in; it hands a query meant for your backend, e.g. a self-hosted SearXNG,
+        # to third-party vendors): when the chosen backend fails a call, THAT call retries once on the
+        # keyless ring; the next call tries the chosen backend again. Off when keyless_fallback is false.
+        "keyless_rescue": False,
         # Per-vendor tier for vendors with both a keyless free endpoint and a keyed paid path (exa,
         # parallel, firecrawl, keenable; tavily is opt-in keyless via `hermes tools`, not a ring
         # member). Set by the `hermes tools` picker. "free" = always anonymous endpoint even with a
@@ -2346,9 +2346,9 @@ DEFAULT_CONFIG = {
             # Requires `enabled` (`send` alone logs an error). A package is sent only if its whole
             # period is inside a recorded consent window.
             "send": False,
-            # Ingest endpoint (override for staging/local). Deliberately NOT env- overridable.
-            # Non-HTTPS refused unless the host is localhost.
-            "endpoint": "https://telemetry.nousresearch.com/v1/telemetry",
+            # Your own collector (no default: `send` does nothing until set). Deliberately NOT
+            # env-overridable. Non-HTTPS refused unless the host is localhost.
+            "endpoint": "",
         },
     },
 
@@ -2699,11 +2699,11 @@ DEFAULT_CONFIG = {
         # 14-20% of consecutive calls in concurrent tool loops (measured 2026-09-06;
         # NousResearch/api#227), so chat is the default until that is fixed.
         "anthropic_wire": "chat",
-        # Nous free tier: with no other provider configured, Hermes sets up a free Nous identity on
-        # first use (inference on nous/welcome + connectors) and offers `/login` (terminal:
-        # `hermes auth upgrade`) to sign in. false turns the free tier off entirely: nothing is set
-        # up and nothing is used.
-        "guest": True,
+        # Nous free tier (opt-in): true lets Hermes create an anonymous Nous Portal identity on first
+        # use (inference on nous/welcome + connectors + Nous-routed web search) and offer `/login`
+        # (terminal: `hermes auth upgrade`) to sign in. false (default): nothing is set up and
+        # nothing is used, so no account is ever created on the vendor's side without asking.
+        "guest": False,
     },
     # Google Vertex AI (Gemini). Auth is OAuth2 from a service-account JSON or ADC, NOT an API key;
     # the credential path lives in .env (VERTEX_CREDENTIALS_PATH / GOOGLE_APPLICATION_CREDENTIALS).

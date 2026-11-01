@@ -5,8 +5,13 @@ in ``credential_pool.nous``. In a process that is not that backend (plain CLI, g
 drop that row instead of handing its welcome-host token to the runtime.
 """
 
+import pytest
+
 from hermes_cli import anon_auth
 from tests.hermes_cli.anon_portal import claimed_trial, install_portal
+
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
 
 
 def test_guest_pool_row_is_dropped_outside_the_desktop_backend(monkeypatch, tmp_path):

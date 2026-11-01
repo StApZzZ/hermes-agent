@@ -104,10 +104,14 @@ def _fetch_manifest(url: str, timeout: float) -> dict[str, Any] | None:
 
 
 def _fetch_manifest_with_fallback(
-    primary_url: str, timeout: float, fallback_urls: tuple[str, ...] = DEFAULT_CATALOG_FALLBACK_URLS
+    primary_url: str, timeout: float, fallback_urls: tuple[str, ...] | None = None
 ) -> dict[str, Any] | None:
     """First manifest that fetches and validates from ``primary_url`` then ``fallback_urls`` (skipping
-    any equal to the primary so a raw-GitHub-configured operator doesn't double-fetch), or None."""
+    any equal to the primary so a raw-GitHub-configured operator doesn't double-fetch), or None.
+    The shipped mirrors back only the shipped URL: an operator's own catalog that fails must never
+    fall through to the upstream copy."""
+    if fallback_urls is None:
+        fallback_urls = DEFAULT_CATALOG_FALLBACK_URLS if primary_url == DEFAULT_CATALOG_URL else ()
     data = _fetch_manifest(primary_url, timeout)
     if data is not None:
         return data

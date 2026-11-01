@@ -2778,10 +2778,11 @@ web:
   # Firecrawl/Keenable free tiers. Set false to disable.
   keyless_fallback: true
 
-  # One-shot keyless rescue (default: true). When the chosen/keyed backend
+  # One-shot keyless rescue (default: false). When the chosen/keyed backend
   # fails a call, that single call retries on the keyless ring; the next
-  # call attempts the chosen backend again (never sticky).
-  keyless_rescue: true
+  # call attempts the chosen backend again (never sticky). Off by default
+  # because it hands a query meant for your backend to third-party vendors.
+  keyless_rescue: false
 
   # Pin Exa/Parallel to a tier (set by the hermes tools Free/Paid rows).
   # free = always the anonymous endpoint; paid = always the keyed SDK path;

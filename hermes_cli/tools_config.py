@@ -931,9 +931,15 @@ def _shared_metrics_state(config: dict) -> tuple[bool, bool]:
 
 
 def _shared_metrics_menu_label(config: dict) -> str:
-    """Menu row for shared metrics, showing both consent states."""
-    enabled, send = _shared_metrics_state(config)
-    state = "off" if not enabled else ("collecting + sending to Nous" if send else "collecting locally")
+    """Menu row for shared metrics, showing both consent states and where packages go."""
+    from urllib.parse import urlparse
+
+    from hermes_cli.observability.shared_metrics_send_config import resolve_send_config
+
+    enabled, _ = _shared_metrics_state(config)
+    target = resolve_send_config(config)
+    host = urlparse(target.endpoint).hostname if target.send else None
+    state = "off" if not enabled else (f"collecting + sending to {host}" if host else "collecting locally")
     return f"Configure shared metrics  ({state})"
 
 

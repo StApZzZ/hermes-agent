@@ -115,10 +115,10 @@ export const en: Translations = {
     dismiss: "Dismiss",
     sharedMetricsTitle: "Help improve Hermes?",
     sharedMetricsBody:
-      "Shared metrics are bounded counters, never prompts, files, paths or error text. Collection stays on this machine; sending to Nous is a separate choice.",
+      "Shared metrics are bounded counters, never prompts, files, paths or error text. Collection stays on this machine; sending to your own collector is a separate choice.",
     sharedMetricsReaskBody:
       "Asking once more: an earlier version could save \"No thanks\" before you saw this question.",
-    sharedMetricsShare: "Send to Nous",
+    sharedMetricsShare: "Send to my collector",
     sharedMetricsLocal: "Local only",
     sharedMetricsOff: "No thanks",
     sharedMetricsDetails: "Details",

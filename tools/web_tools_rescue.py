@@ -18,9 +18,9 @@ _RING_KEY_VARS = {
 
 
 def _keyless_rescue_enabled() -> bool:
-    """``web.keyless_rescue`` (default on), implicitly off when the keyless tier is disabled."""
+    """``web.keyless_rescue`` (default off), implicitly off when the keyless tier is disabled."""
     from tools.web_tools import _load_web_config
-    if not _load_web_config().get("keyless_rescue", True):
+    if not _load_web_config().get("keyless_rescue", False):
         return False
     try:
         from agent.web_search_registry import _keyless_tier_enabled

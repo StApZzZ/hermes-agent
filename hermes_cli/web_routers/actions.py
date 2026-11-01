@@ -281,8 +281,9 @@ _NON_APPLYABLE_MESSAGES = {
 
 
 @router.get("/api/hermes/update/check")
-async def check_hermes_update(force: bool = False, profile: Optional[str] = None):
-    """Report whether a Hermes update is available, without applying it.
+async def check_hermes_update(force: bool = False, passive: bool = False, profile: Optional[str] = None):
+    """Report whether a Hermes update is available, without applying it. ``passive`` marks a check
+    nobody asked for (a page load), which ``updates.check: false`` turns off like the CLI banner's.
 
     Returns install_method ('apt'|'git'|'docker'|'nix'|'nixos'|'unknown'),
     current_version, behind (commits behind, 0 = up to date, -1 = unknown count,
@@ -327,7 +328,7 @@ async def check_hermes_update(force: bool = False, profile: Optional[str] = None
         from hermes_cli.source_check import check_for_updates
 
         with _config_profile_scope(profile):
-            status = await asyncio.to_thread(check_for_updates, force=force)
+            status = await asyncio.to_thread(check_for_updates, force=force, passive=passive and not force)
         behind = status.get("behind")
     except Exception:
         _log.exception("Update check failed")

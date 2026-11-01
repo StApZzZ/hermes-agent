@@ -10,6 +10,9 @@ from hermes_cli import anon_auth
 from hermes_cli.auth import _auth_store_lock, _load_auth_store, _save_auth_store
 from tests.hermes_cli.anon_portal import as_local_desktop_backend, claimed_trial, install_portal
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 def _jwt(**claims) -> str:
     def seg(obj):

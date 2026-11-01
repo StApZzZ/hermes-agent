@@ -19,6 +19,9 @@ import pytest
 from hermes_cli import anon_auth
 from hermes_cli.auth import _auth_file_path, _load_auth_store
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 WELCOME = "https://welcome-api.nousresearch.com/v1"
 INFERENCE = "https://inference-api.nousresearch.com/v1"
 PORTAL = "https://portal.example.test"

@@ -756,18 +756,24 @@ Transmission is a **separate opt-in** from collection, under a new config key:
 telemetry:
   shared_metrics:
     enabled: false   # collect locally
-    send: false      # NEW: transmit to the Nous telemetry service
+    send: false      # NEW: transmit to your collector
+    endpoint: ""     # your collector's URL; there is no default one
 ```
 
 - `send` defaults to **false**. Collection alone never transmits.
+- There is **no default collector**. `send: true` without an `endpoint` logs an
+  error and sends nothing; non-HTTPS endpoints are refused unless loopback.
 - `send` requires `enabled`. It does **not** imply it: a transmission flag must
   not silently switch on collection. `send: true` with `enabled: false` warns
   and does nothing.
 - Like `enabled`, `send` is profile-owned and is not overridden by
   managed-scope configuration.
 
-Both keys are asked once per profile, with the same three answers everywhere
-(Send to Nous / Local only / No thanks):
+Once an `endpoint` is configured, both keys are asked once per profile, with the
+same three answers everywhere (Send to the configured endpoint / Local only / No
+thanks). Without an endpoint there is nothing to consent to, so no surface asks;
+`hermes setup telemetry` remains the way to turn on local collection or name a
+collector:
 
 | Surface | Where the offer appears |
 | --- | --- |

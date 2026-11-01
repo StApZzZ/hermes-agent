@@ -440,6 +440,15 @@ def _isolate_hermes_home(_hermetic_environment):
     return
 
 
+@pytest.fixture
+def nous_guest_enabled(monkeypatch):
+    """Run with the opt-in Nous free tier switched on by default (``nous.guest: true``), as a user
+    who enabled it would; an explicit ``nous.guest`` in the test's config still wins."""
+    from hermes_cli.config import DEFAULT_CONFIG
+
+    monkeypatch.setitem(DEFAULT_CONFIG["nous"], "guest", True)
+
+
 @pytest.fixture(autouse=True)
 def _reset_foreground_exit_fence():
     """A test that drives a hard-exit path raises the one-way foreground-spawn fence; lower it after."""

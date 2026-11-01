@@ -60,14 +60,20 @@ def test_send_without_collection_is_normalized_off_and_closes_the_consent_window
 
 def test_status_is_undecided_until_a_key_is_written(tmp_path, monkeypatch):
     _launch, worker = _bind_homes(monkeypatch, tmp_path)
+    endpoint = "https://m.example.test/v1"
 
+    # No collector configured: nothing to consent to, so the Desktop strip never shows.
+    assert _call("shared_metrics.status", {"profile": "code"})["decided"] is True
+
+    (worker / "config.yaml").write_text(
+        yaml.safe_dump({"telemetry": {"shared_metrics": {"endpoint": endpoint}}}), encoding="utf-8")
     unasked = {"enabled": False, "send": False, "decided": False, "reask": False}
     assert _call("shared_metrics.status", {"profile": "code"}) == unasked
 
     # A "No thanks" from before the type-ahead fix (no offer_version) may never have been seen:
     # it is offered once more, and the answer to that settles it.
     (worker / "config.yaml").write_text(
-        yaml.safe_dump({"telemetry": {"shared_metrics": {"enabled": False}}}), encoding="utf-8")
+        yaml.safe_dump({"telemetry": {"shared_metrics": {"enabled": False, "endpoint": endpoint}}}), encoding="utf-8")
     assert _call("shared_metrics.status", {"profile": "code"}) == {**unasked, "reask": True}
     _call("shared_metrics.set", {"profile": "code", "enabled": False, "send": False})
     assert _call("shared_metrics.status", {"profile": "code"}) == {**unasked, "decided": True}

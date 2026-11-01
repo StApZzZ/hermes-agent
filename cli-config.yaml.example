@@ -2151,7 +2151,8 @@ display:
 # are retained until they can be exported.
 # This profile-owned choice is not overridden by managed-scope configuration.
 #
-# Nothing is uploaded unless you also set `send: true`. That is a separate
+# Nothing is uploaded unless you also set `send: true` AND name your own
+# collector in `endpoint` (there is no default one). Sending is a separate
 # opt-in and requires `enabled`; it never turns collection on by itself.
 # When sending is on:
 #   * only packages whose entire collection period falls within one
@@ -2168,7 +2169,7 @@ telemetry:
   shared_metrics:
     enabled: false
     send: false
-    # endpoint: https://telemetry.nousresearch.com/v1/telemetry
+    # endpoint: https://metrics.example.com/v1/telemetry   # your own collector (https, or http://localhost)
 
 
 # =============================================================================

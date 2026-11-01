@@ -111,7 +111,7 @@ def connectors_available(
 
 
 def guest_identity_pending() -> bool:
-    """No Nous identity or bearer yet, and a guest one may be created (``nous.guest`` is not false
+    """No Nous identity or bearer yet, and a guest one may be created (``nous.guest`` is true
     and no earlier mint was refused for good). No network: this feeds the ``check_fn``."""
     from hermes_cli.anon_auth import guest_allowed, last_mint_failure
     from tools.managed_tool_gateway import _read_nous_provider_state, peek_nous_access_token

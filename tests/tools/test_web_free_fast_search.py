@@ -13,6 +13,9 @@ import pytest
 
 from tests.hermes_cli.anon_portal import as_local_desktop_backend
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 # Anonymous guest: NAS tier claim says "anonymous" — no Portal account behind the identity. It claimed
 # the desktop's welcome trial (``_write_home`` reads it on the local desktop backend).
 ANON = {"sub": "anon-1", "account_tier": "anonymous", "paid_access": False}
