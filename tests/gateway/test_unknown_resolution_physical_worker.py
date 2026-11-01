@@ -9,13 +9,13 @@ from types import SimpleNamespace
 import psutil
 import pytest
 
+from hermes_cli.process_identity import worker_birth
 from hermes_state import SessionDB
 import hermes_state_runtime as rt
-from hermes_cli.process_identity import process_birth
 
 
 def hello(process):
-    return {'type': 'hello', 'pid': process.pid, 'birth': process_birth(psutil.Process(process.pid)),
+    return {'type': 'hello', 'pid': process.pid, 'birth': worker_birth(psutil.Process(process.pid)),
             'ancestors': [os.getpid()]}
 
 
