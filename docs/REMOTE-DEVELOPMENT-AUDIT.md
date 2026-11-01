@@ -149,7 +149,10 @@ Primary references: [Remote-SSH](https://code.visualstudio.com/docs/remote/ssh),
   Windows). Inbound is `policy drop` except key-only SSH from the VPN exit
   allowlist; password login is refused (`Permission denied (publickey)`).
 - `scripts/remote-dev/backup-pull.sh` pulls a consistent daily snapshot into the
-  gitignored `server-backups/`; a Windows scheduled task runs it at logon and daily.
+  `~/.local/share/hermes-server-backups/` (`$XDG_DATA_HOME` honoured); a Windows
+  scheduled task runs it at logon and daily. The archives live outside the checkout
+  because the `profile-archives` check in `scripts/check` rejects them anywhere in
+  the tree, gitignored or not (`git add -f` and Docker build contexts bypass ignores).
 
 The authoring checkout was moved to WSL `~/repos/hermes-agent` at the owner's
 request. A separate three-file Windows launcher runs production SSH operations
@@ -172,7 +175,6 @@ Terraform project, outside this public PR.
 | `agent/agent_runtime_provider_clients.py`, `agent/agent_runtime_helpers.py`, `agent/auxiliary_client.py` | Provider-supplied client seam moved to a sibling; external-process profiles never fall back to HTTP. |
 | `tests/agent/test_cli_subscription_client.py`, `tests/agent/fixtures/subscription_cli.py`, `tests/plugins/test_cli_subscription_auth.py`, `tests/agent/test_provider_client_seam.py` | Real child-process contracts for the three wire formats, caching split, errors, auth commands. |
 | `scripts/remote-dev/` | Server hardening with auto-rollback; consistent backup snapshot and local pull. |
-| `.gitignore` | `/server-backups/`. |
 | `docs/REMOTE-DEVELOPMENT-RU.md`, `docs/REMOTE-DEVELOPMENT-AUDIT.md` | Installation, operations, architecture, review and validation limits. |
 
 ## Remaining acceptance checks and limits

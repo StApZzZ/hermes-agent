@@ -338,8 +338,13 @@ ssh root@<server> /usr/local/sbin/hermes-hardening confirm
 ## 9. Резервные копии
 
 `scripts/remote-dev/backup-pull.sh [--force] [ssh-alias]` запускается на локальной
-машине (WSL) и кладёт архив в `server-backups/<alias>/` внутри checkout —
-каталог в `.gitignore`, права 700. В архив входят `~/.hermes` (config, `.env`,
+машине (WSL) и кладёт архив в `~/.local/share/hermes-server-backups/<alias>/`
+(или `$XDG_DATA_HOME/hermes-server-backups/<alias>/`), права 700. Каталог
+намеренно вне checkout: `scripts/check` (проверка `profile-archives`) отвергает
+архивы профиля в любом месте дерева, даже в `.gitignore`, — иначе их легко
+унести в коммит через `git add -f` или в Docker-образ. Бэкапы, сделанные до
+переноса в `<repo>/server-backups/`, переместите: `mv <repo>/server-backups/*
+~/.local/share/hermes-server-backups/`. В архив входят `~/.hermes` (config, `.env`,
 SOUL, память, skills, cron, kanban, сессии), конфиги и история Claude/Codex/Gemini,
 `~/repos` и `~/work` с `.git`, а также `BACKUP-MANIFEST.txt` (ветка, HEAD, число
 незакоммиченных и непушнутых изменений по каждому репозиторию) и копии
@@ -349,7 +354,7 @@ SOUL, память, skills, cron, kanban, сессии), конфиги и ис�
 Не входят: пересобираемые `~/.hermes/tools|cache|installs`, пакеты CLI,
 `node_modules`/venv и OAuth-токены CLI — после восстановления выполните штатный
 вход в каждый CLI. Один архив в сутки (`--force` — внеплановый), хранятся 14
-последних (`KEEP=N`). Журнал — `server-backups/<alias>/backup.log`.
+последних (`KEEP=N`). Журнал — `backup.log` в том же каталоге.
 
 Расписание в Windows (при входе в систему и ежедневно; пропущенный запуск
 выполняется при первой возможности, нужен поднятый VPN):

@@ -113,7 +113,7 @@ def _linux_boot_reference(psutil) -> float:
     try:
         boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="ascii").strip()
         base = Path("/dev/shm") if os.access("/dev/shm", os.W_OK) else Path(tempfile.gettempdir())
-        ref = base / f"hermes-boot-reference-{os.getuid()}-{boot_id}"
+        ref = base / f"hermes-boot-reference-{os.getuid()}-{boot_id}"  # windows-footgun: ok — Linux-only, see the caller
         if not ref.exists():
             tmp = ref.with_name(f"{ref.name}.{os.getpid()}.tmp")
             tmp.write_text(repr(live), encoding="ascii")
@@ -123,7 +123,7 @@ def _linux_boot_reference(psutil) -> float:
                 pass
             finally:
                 tmp.unlink(missing_ok=True)
-        if ref.stat().st_uid == os.getuid():
+        if ref.stat().st_uid == os.getuid():  # windows-footgun: ok — Linux-only
             value = float(ref.read_text(encoding="ascii"))
     except (OSError, ValueError):
         value = live

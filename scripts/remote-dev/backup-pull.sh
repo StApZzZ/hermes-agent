@@ -1,11 +1,13 @@
 #!/bin/bash
-# Pull a snapshot of a Hermes remote-development server into <repo>/server-backups/<alias>/.
+# Pull a snapshot of a Hermes remote-development server into
+# ${XDG_DATA_HOME:-~/.local/share}/hermes-server-backups/<alias>/.
 #
 #   backup-pull.sh [--force] [ssh-alias]       (default alias: hermes-dev)
 #
 # One <UTC stamp>.tar.gz (+ .sha256) per day: a run is skipped when today's snapshot exists
-# unless --force; the newest $KEEP (default 14) are kept. The directory is gitignored and
-# holds secrets (~/.hermes/.env), so it is created mode 700. Restore: see
+# unless --force; the newest $KEEP (default 14) are kept. The directory holds secrets
+# (~/.hermes/.env), so it is created mode 700, and it stays outside the checkout:
+# scripts/check rejects profile archives anywhere in the tree, gitignored or not. Restore: see
 # docs/REMOTE-DEVELOPMENT-RU.md § Резервные копии.
 set -euo pipefail
 
@@ -13,7 +15,7 @@ force=0
 if [ "${1:-}" = --force ]; then force=1; shift; fi
 alias=${1:-hermes-dev}
 here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)/server-backups
+root=${XDG_DATA_HOME:-$HOME/.local/share}/hermes-server-backups
 dest=$root/$alias
 keep=${KEEP:-14}
 

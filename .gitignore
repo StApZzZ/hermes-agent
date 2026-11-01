@@ -254,9 +254,6 @@ docs/superpowers/*
 /vault.key
 /vault.json.enc
 
-# Remote-development server snapshots (scripts/remote-dev/backup-pull.sh); they hold secrets.
-/server-backups/
-
 # Persistent dev sandbox dir (scripts/dev-sandbox.sh --persistent)
 .hermes-sandbox/
 # Sandbox dirs used by the install/update E2E (tests/install/). The suffix is
