@@ -73,8 +73,6 @@ curl -fsSL https://raw.githubusercontent.com/StApZzZ/hermes-agent/main/scripts/d
 scripts/deploy/hermes-deploy.sh
 ```
 
-Пока ветка не влита в `main`, добавляйте `--ref feat/deploy-environment` (в ссылках на raw — та же ветка).
-
 После развёртывания — один вход в каждый CLI (браузер откроется у вас):
 
 ```bash

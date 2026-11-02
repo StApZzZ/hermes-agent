@@ -32,14 +32,17 @@
 <tr><td><b>Your backends stay yours</b></td><td>A failed call on your own web backend (e.g. a self-hosted SearXNG) is no longer resent to third-party free tiers (<code>web.keyless_rescue: false</code>). Your own <code>model_catalog.url</code> never falls back to the upstream copy. Telegram setup defaults to your own BotFather token instead of the Nous onboarding service, which would see the bot token.</td></tr>
 <tr><td><b>Update checks you control</b></td><td>The dashboard's page-load check honours <code>updates.check: false</code>, like the CLI banner. A checkout of this fork tracks its own <code>origin</code>, not Nous release feeds.</td></tr>
 <tr><td><b>Subscription CLIs as providers</b></td><td><code>codex-cli</code>, <code>claude-cli</code> and <code>gemini-cli</code> run Hermes over your signed-in official CLIs: Hermes stays the agent (history, memory, tools), the CLI produces the next model response. <code>hermes auth add|status|logout &lt;engine&gt;-cli</code> drive each CLI's own account commands.</td></tr>
+<tr><td><b>Spaces and shared memory</b></td><td><code>hermes space</code> groups agents (profiles) into work, personal and project spaces and switches between them: <code>hermes space use</code>, folder binding, <code>/space</code> in a chat. <code>hermes memory add shared</code> keeps facts every agent reads; <code>hermes memory copy|move</code> carries all or part of one agent's memory to another agent, a space or the shared memory.</td></tr>
 <tr><td><b>Remote development</b></td><td><code>hermes remote</code> opens a Linux workspace in VS Code over Remote-SSH and runs Claude Code, Codex, Gemini or Hermes ACP there in persistent tmux sessions, with <code>doctor</code> checks. <code>scripts/deploy/hermes-deploy.sh</code> (<code>.ps1</code> on Windows) builds the whole environment on a fresh host, in WSL or locally with one command and opens it in VS Code; <code>scripts/remote-dev/</code> hardens the server and pulls daily backups. Guide: <a href="docs/REMOTE-DEVELOPMENT-RU.md">docs/REMOTE-DEVELOPMENT-RU.md</a>.</td></tr>
 </table>
 
-Install this fork instead of upstream (Linux, macOS, WSL2):
+New to Hermes? Start with the beginner's guide in Russian: [docs/HERMES-RU.md](docs/HERMES-RU.md). It is built around the default setup: VS Code on your PC, Hermes and the subscription CLIs on a server over Remote-SSH — what gets installed, first steps, spaces, memory and privacy.
+
+The whole environment (Hermes, the subscription CLIs, VS Code) on a server, in WSL or locally: [scripts/deploy/README.md](scripts/deploy/README.md). Hermes alone, instead of upstream (Linux, macOS, WSL2):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/StApZzZ/hermes-agent/feat/remote-development/scripts/install.sh \
-  | HERMES_REPO_URL=https://github.com/StApZzZ/hermes-agent.git bash -s -- --channel main --branch feat/remote-development
+curl -fsSL https://raw.githubusercontent.com/StApZzZ/hermes-agent/main/scripts/install.sh \
+  | HERMES_REPO_URL=https://github.com/StApZzZ/hermes-agent.git bash -s -- --channel main --branch main
 ```
 
 ---

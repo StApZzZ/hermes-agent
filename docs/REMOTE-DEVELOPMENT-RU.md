@@ -84,7 +84,7 @@ Hermes, установленный из этой ветки, предостав�
 ```powershell
 $target = "$env:LOCALAPPDATA\HermesRemote\hermes_cli\subcommands"
 New-Item -ItemType Directory -Force -Path $target | Out-Null
-$base = 'https://raw.githubusercontent.com/StApZzZ/hermes-agent/feat/remote-development/hermes_cli/subcommands'
+$base = 'https://raw.githubusercontent.com/StApZzZ/hermes-agent/main/hermes_cli/subcommands'
 foreach ($file in @('remote.py', 'remote_doctor.py', 'remote_workspaces.py')) {
     Invoke-WebRequest "$base/$file" -OutFile "$target\$file"
 }
