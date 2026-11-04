@@ -322,15 +322,24 @@ CI `remote-development.yml` проверяет Windows/Linux и SSH-контей
 
 `scripts/remote-dev/harden-server.sh` (запуск от root на сервере) оставляет
 единственную входящую дверь — SSH по ключу с адресов из allowlist (выходные IP
-вашего VPN):
+вашего VPN). Проще всего — `hermes-deploy --lock [--allow ...]`: он сам применит
+скрипт, добавит адрес, с которого вы подключены, и подтвердит из нового соединения
+([scripts/deploy/README.md](../scripts/deploy/README.md), «Закрытие сервера»).
+Debian/Ubuntu и RHEL-семейство (Oracle Linux, Rocky, Alma) с systemd. firewalld и ufw
+остаются как есть: наша таблица только сужает то, что они пропускают.
 
-- nftables, отдельная таблица `inet hermes_fw`: input/forward `policy drop`,
-  разрешены loopback, ответы на исходящие соединения, `tcp/22` и ping только из
-  allowlist, IPv6 ND. Исходящий трафик открыт (CLI, git, пакеты).
-- sshd: только `publickey`, `AllowUsers <admin> root`, root без пароля, без
+- nftables, отдельная таблица `inet hermes_fw` (загружается при старте из `/etc/nftables.conf`,
+  на RHEL — `/etc/sysconfig/nftables.conf`): input/forward `policy drop`,
+  разрешены loopback, ответы на исходящие соединения, порт(ы) sshd (из `sshd -T`)
+  и ping только из allowlist (IPv4 и IPv6), IPv6 ND. Исходящий трафик открыт (CLI, git, пакеты).
+- sshd: только `publickey`, `AllowUsers <admin...> root` (`--admin-user` можно повторять:
+  на Oracle Cloud это `hermes` и `opc`), root без пароля (если у root нет рабочего ключа,
+  нужен sudo у одного из `<admin>`), без
   agent/X11/tunnel/remote-forwarding; local forwarding оставлен для VS Code.
-- cloud-init `ssh_pwauth: false`, учётка `tmpuser` из образа заблокирована,
-  unattended security upgrades, базовые sysctl.
+- cloud-init `ssh_pwauth: false`, учётка `tmpuser` из образа заблокирована, автоматические
+  обновления безопасности (unattended-upgrades; на RHEL — `dnf-automatic`), базовые sysctl.
+  Где `sshd_config` не подключает `sshd_config.d` (Oracle Linux 8, Debian 10), в его начало
+  добавляется `Include`; откат возвращает исходный файл.
 
 ```sh
 scp scripts/remote-dev/harden-server.sh root@<server>:/root/

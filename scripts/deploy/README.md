@@ -26,8 +26,10 @@
   `agy` (Antigravity) с обёрткой `agy-hermes`, которая не передаёт ему ключи и токены из `~/.hermes/.env`.
   Список — `--clis`; CLI, который не поставился, не останавливает остальное.
 - Провайдер модели `claude-cli` для новой конфигурации (`--provider`, `none` — не трогать).
-- Пользователь `hermes` с linger (gateway и tmux-сессии `hermes remote` переживают выход из SSH) — при `--root-login`.
+- Пользователь `hermes` с linger (gateway и tmux-сессии `hermes remote` переживают выход из SSH) — при `--root-login`
+  или `--admin`.
 - По желанию — служба gateway (`--gateway`) и состояние со старой машины (`--restore`, `--clone-from`).
+- По желанию — закрытый сервер (`--lock`): входящий только SSH по ключу с разрешённых адресов.
 - VS Code: Remote-SSH у вас, расширения рабочего места на сервере (`remote.SSH.defaultExtensions`),
   ACP-агент `Hermes Remote` в Machine settings сервера, папка открывается сама.
 
@@ -36,7 +38,8 @@
 
 ## Быстрый старт
 
-Новый VPS, есть вход `root` по ключу (самый частый случай):
+Новый VPS, вход `root` по ключу. Хостер выдал только пароль — сначала положите ключ
+(`ssh-copy-id root@203.0.113.10`; Windows — [docs/HERMES-RU.md](../../docs/HERMES-RU.md), «Шаг 1»):
 
 ```bash
 scripts/deploy/hermes-deploy.sh --host 203.0.113.10 --name hermes-dev --root-login
@@ -45,6 +48,16 @@ scripts/deploy/hermes-deploy.sh --host 203.0.113.10 --name hermes-dev --root-log
 Скрипт поставит пакеты, создаст пользователя `hermes`, разрешит ему ваш ключ, установит всё под ним,
 настроит VS Code и откроет `~/repos/hermes-agent` на сервере. Без `--root-login` нужен пользователь с ключом,
 а для недостающих пакетов — `sudo` (пароль спросят).
+
+Облако не пускает root по SSH (Oracle Cloud: «Please login as the user opc»; AWS, образы Ubuntu) — тот же
+путь через пользователя образа и его `sudo`:
+
+```bash
+scripts/deploy/hermes-deploy.sh --host 203.0.113.10 --name hermes-dev --admin opc --lock   # Oracle Linux
+scripts/deploy/hermes-deploy.sh --host 203.0.113.10 --name hermes-dev --admin ubuntu       # Ubuntu
+```
+
+Системы: Debian/Ubuntu (apt) и RHEL-семейство (dnf: Oracle Linux 8/9, Rocky, Alma, CentOS Stream, Fedora).
 
 Сервер уже есть в `~/.ssh/config`:
 
@@ -98,6 +111,39 @@ powershell -ExecutionPolicy Bypass -File .\hermes-deploy.ps1 -IdeOnly -Name herm
 Windows PowerShell не запускает `.ps1` с путей `\\wsl$` («AuthorizationManager check failed»),
 поэтому WSL-половина копирует скрипт во временную папку Windows.
 
+## Закрытие сервера
+
+```bash
+scripts/deploy/hermes-deploy.sh --host 203.0.113.10 --name hermes-dev --root-login --lock
+scripts/deploy/hermes-deploy.sh --name hermes-dev --root-login --allow 198.51.100.7,2001:db8::/32   # --allow включает --lock
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\hermes-deploy.ps1 -HostName 203.0.113.10 -Name hermes-dev -RootLogin -Lock -Allow 198.51.100.7
+```
+
+После всех стадий скрипт загружает на сервер `scripts/remote-dev/harden-server.sh` и применяет его от
+root (`--root-login`) или через `sudo` (`--admin`, либо `--user` с правом sudo). Что именно он закрывает — в
+[REMOTE-DEVELOPMENT-RU.md](../../docs/REMOTE-DEVELOPMENT-RU.md), раздел 8. Здесь важно следующее:
+
+- **Текущий адрес** скрипт берёт у самого сервера (`SSH_CLIENT`): это адрес, с которого вы реально
+  подключены, с учётом NAT и VPN. Внешние сервисы «какой у меня IP» не используются. При наличии
+  терминала скрипт спрашивает, разрешить ли его; без терминала (`curl … | bash`, CI) разрешает молча.
+- **Порт SSH** берётся из `sshd -T`, поэтому `--port 2222` закрывается правильно. Адреса — IPv4 и IPv6,
+  с маской или без.
+- **Проверка входа:** после `apply` скрипт открывает новое соединение (`ControlMaster=no`) и только
+  из него подтверждает изменения. Не вошло — выход с кодом 6, сервер откатывается сам через 5 минут.
+- **Повторный запуск** с другим `--allow` заменяет список целиком; исходные настройки sshd и nftables
+  сохранены при первом закрытии и возвращаются `hermes-hardening rollback` от root (скрипт в конце
+  печатает готовую команду: `ssh -t -o User=root <alias> /usr/local/sbin/hermes-hardening rollback`).
+  Повторный запуск закрытого сервера — с тем же `--root-login`/`--admin`: у пользователя `hermes` нет `sudo`.
+- Debian/Ubuntu и RHEL-семейство с systemd; на других системах `--lock` останавливается до установки.
+  firewalld (RHEL, Oracle Linux) и ufw не трогаются: пакет проходит все таблицы, наша только сужает.
+  На Oracle Linux 8 sshd не читает `sshd_config.d` — скрипт добавит `Include` в начало `sshd_config`.
+- `sshd` пускает только `--user`, `--admin` и root: другие учётные записи на сервере теряют вход по SSH.
+- Облачный файрвол (Oracle Cloud: Security List / NSG у VCN) остаётся как есть: порт SSH в нём должен
+  быть открыт, закрывает сам сервер.
+
 ## Перенос состояния
 
 ```bash
@@ -138,6 +184,7 @@ SOUL, память, skills, cron, kanban, сессии, настройки CLI. 
 | `--port N`, `--key FILE` | `-Port`, `-Key` | SSH; ключ по умолчанию — первый из `id_ed25519`, `id_ecdsa`, `id_rsa` |
 | `--ssh-config FILE` | — | Другой ssh config; VS Code получит `remote.SSH.configFile` |
 | `--root-login` | `-RootLogin` | Сначала войти root: пакеты, пользователь, ключ, linger |
+| `--admin NAME` | `-Admin NAME` | То же через sudo-пользователя, где root не пускают (`opc` на Oracle Cloud) |
 | `--skip-system` | `-SkipSystem` | Пропустить системную стадию |
 | — | `-Local [-Distro D]` | Развернуть в WSL этого ПК |
 | `--repo`, `--ref` | `-Repo`, `-Ref` | Источник Hermes (форк, `main`) |
@@ -146,6 +193,7 @@ SOUL, память, skills, cron, kanban, сессии, настройки CLI. 
 | `--provider NAME` | `-Provider` | Провайдер новой конфигурации (`claude-cli`; `none`) |
 | `--update`, `--with-browser`, `--gateway` | `-Update`, `-WithBrowser`, `-Gateway` | См. выше |
 | `--restore FILE`, `--clone-from ALIAS` | `-Restore`, `-CloneFrom` | Перенос состояния |
+| `--lock`, `--allow ADDR[,ADDR]` | `-Lock`, `-Allow ADDR,ADDR` | Закрыть сервер: SSH по ключу только с этих адресов и с текущего |
 | `--ide code\|none`, `--no-open` | `-Ide`, `-NoOpen` | VS Code; `-IdeOnly` — только Windows-часть |
 | `--dry-run` | `-DryRun` | Только проверки и план |
 
@@ -164,5 +212,5 @@ scripts/run_tests.sh tests/scripts/test_deploy_environment.py
 ssh hermes-dev bash ~/.cache/hermes-deploy/bootstrap.sh check  # версии и состояние на сервере
 ```
 
-Закрыть сервер файрволом после развёртывания — `scripts/remote-dev/harden-server.sh`
-([docs/REMOTE-DEVELOPMENT-RU.md](../../docs/REMOTE-DEVELOPMENT-RU.md), раздел 8).
+Закрыть уже развёрнутый сервер — тот же скрипт с `--lock` (или `harden-server.sh` вручную,
+[docs/REMOTE-DEVELOPMENT-RU.md](../../docs/REMOTE-DEVELOPMENT-RU.md), раздел 8).

@@ -112,3 +112,50 @@ def test_ssh_host_block_is_written_once_above_existing_config(tmp_path):
     assert text.count("Host box\n") == 1
     assert text.startswith("# >>> hermes-deploy box\nHost box\n  HostName 127.0.0.1\n")
     assert text.endswith("Match all\n# <<< hermes-deploy box\n\nHost *\n  ServerAliveCountMax 3\n")
+
+
+@pytest.mark.platforms("posix")
+@pytest.mark.parametrize(("login", "run_as", "admins"), [
+    (["--root-login"], "User=root", "--admin-user 'hermes'"),
+    # Oracle Cloud refuses root logins: opc stands in through sudo and must keep its own SSH way in.
+    (["--admin", "opc"], "User=opc", "--admin-user 'hermes' --admin-user 'opc'"),
+])
+def test_lock_keeps_the_address_it_deploys_from_and_confirms_over_a_new_connection(tmp_path, login, run_as, admins):
+    env = _env(tmp_path)
+    calls = tmp_path / "ssh-calls"
+    # The host answers like sshd would: SSH_CLIENT carries the address it sees this machine at.
+    _stub(tmp_path, env, "ssh", f'''printf '%s\\n' "$*" >> {calls}
+case "$*" in *SSH_CLIENT*) printf 203.0.113.9 ;; *'printf %s "$HOME"'*) printf /home/hermes ;; esac
+cat >/dev/null''')
+    key = tmp_path / "key"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True, timeout=30)
+    argv = ["bash", str(DEPLOY / "hermes-deploy.sh"), "--host", "192.0.2.10", "--name", "box", "--key", str(key),
+            "--ssh-config", str(tmp_path / "ssh_config"), "--ide", "none", *login, "--allow", "198.51.100.0/24"]
+
+    # A new session has no terminal to ask on: the current address is allowed without a prompt.
+    result = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
+                            errors="replace", timeout=60, check=False, start_new_session=True)
+
+    assert result.returncode == 0, result.stderr
+    lines = calls.read_text(encoding="utf-8").splitlines()
+    apply = [i for i, line in enumerate(lines) if "harden-server.sh apply" in line]
+    confirm = [i for i, line in enumerate(lines) if "hermes-hardening confirm" in line]
+    assert len(apply) == 1 and len(confirm) == 1 and apply[0] < confirm[0]
+    assert f"--allow '198.51.100.0/24' --allow '203.0.113.9' {admins}" in lines[apply[0]]
+    assert "ControlMaster=no" in lines[confirm[0]] and "ControlPath=none" in lines[confirm[0]]
+    sudo = "" if run_as == "User=root" else "sudo "
+    assert run_as in lines[apply[0]] and f" box {sudo}bash ~/.cache/hermes-deploy/harden-server.sh apply " in lines[apply[0]]
+    assert run_as in lines[confirm[0]] and lines[confirm[0]].endswith(f" box {sudo}/usr/local/sbin/hermes-hardening confirm")
+
+
+@pytest.mark.platforms("posix")
+def test_lock_rejects_a_malformed_address_before_touching_the_host(tmp_path):
+    env = _env(tmp_path)
+    calls = tmp_path / "ssh-calls"
+    _stub(tmp_path, env, "ssh", f'printf "%s\\n" "$*" >> {calls}')
+    result = subprocess.run(["bash", str(DEPLOY / "hermes-deploy.sh"), "--name", "box", "--allow", "203.0.113.9; reboot"],
+                            env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
+                            errors="replace", timeout=60, check=False)
+
+    assert result.returncode == 2 and "not an IPv4/IPv6 address" in result.stderr
+    assert not calls.exists()

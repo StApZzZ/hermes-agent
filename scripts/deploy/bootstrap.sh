@@ -87,6 +87,8 @@ stage_system() {
         grep -qxF "$pubkey" "$home/.ssh/authorized_keys" || printf '%s\n' "$pubkey" >> "$home/.ssh/authorized_keys"
         chown "$user:$(id -gn "$user")" "$home/.ssh/authorized_keys"
         chmod 600 "$home/.ssh/authorized_keys"
+        # SELinux (the RHEL family): sshd reads only ssh_home_t keys, and a file made here may not carry it.
+        if have restorecon; then restorecon -R "$home/.ssh"; fi
         echo "key authorized"
     fi
     # Without linger systemd kills the user's processes at logout: the gateway unit and the

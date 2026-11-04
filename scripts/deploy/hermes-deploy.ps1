@@ -9,10 +9,13 @@
   powershell -ExecutionPolicy Bypass -File .\hermes-deploy.ps1 -Local [-Distro Ubuntu]     this PC, inside WSL
 
   Remote:  -User hermes  -Port 22  -Key ~\.ssh\id_ed25519  -RootLogin (connect as root first: packages, create
-           -User, authorize the key, linger)  -SkipSystem
+           -User, authorize the key, linger)  -Admin opc (the same through a sudo user where root logins are
+           refused: opc on Oracle Cloud, ubuntu, ec2-user, rocky)  -SkipSystem
   Hermes:  -Repo <fork>  -Ref main  -Dir ~/repos/hermes-agent  -Workspace <= Dir>  -Clis claude,codex,gemini,agy
            -Provider claude-cli|none  -Update  -WithBrowser  -Gateway
   State:   -Restore <backup-pull .tar.gz>  -CloneFrom <alias> (snapshot a live host now)
+  Lock:    -Lock: close the host to everything but key-only SSH from the allowed addresses (harden-server.sh);
+           -Allow 203.0.113.7,198.51.100.0/24 (IPv4/IPv6; implies -Lock). Your current address is offered too.
   IDE:     -Ide code|none  -NoOpen  -IdeOnly (only the Windows side: ssh config, extensions, settings, open)
   -DryRun: checks and the plan only, writes nothing.
 
@@ -29,6 +32,7 @@ param(
     [int]$Port = 22,
     [string]$Key = "",
     [switch]$RootLogin,
+    [string]$Admin = "",
     [switch]$SkipSystem,
     [switch]$Local,
     [string]$Distro = "",
@@ -43,6 +47,8 @@ param(
     [switch]$Gateway,
     [string]$Restore = "",
     [string]$CloneFrom = "",
+    [switch]$Lock,
+    [string[]]$Allow = @(),
     [ValidateSet("code", "none")][string]$Ide = "code",
     [switch]$NoOpen,
     [switch]$IdeOnly,
@@ -66,6 +72,14 @@ if ($Local -and $Remote) { Fail "-Local or -HostName/-Name, not both" 2 }
 if (-not $Local -and -not $Remote) { Fail "pass -HostName/-Name for a remote host, or -Local for WSL (Get-Help $PSCommandPath)" 2 }
 if ($Restore -and $CloneFrom) { Fail "-Restore or -CloneFrom, not both" 2 }
 if ($Restore -and -not (Test-Path -LiteralPath $Restore)) { Fail "no archive $Restore" 2 }
+$Allow = @($Allow | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+foreach ($a in $Allow) {
+    if ($a -notmatch '^(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?$' -and $a -notmatch '^[0-9A-Fa-f:]*:[0-9A-Fa-f:.]*(/\d{1,3})?$') {
+        Fail "-Allow: not an IPv4/IPv6 address or range: $a" 2
+    }
+}
+if ($Allow.Count -gt 0) { $Lock = [switch]$true }
+if ($Lock -and -not $Remote) { Fail "-Lock closes a remote host: pass -HostName or -Name" 2 }
 if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) { Fail "no ssh: Settings > Apps > Optional features > OpenSSH Client" 2 }
 $Home_ = if ($env:USERPROFILE) { $env:USERPROFILE } else { $HOME }
 $Cache = Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $Home_ ".cache" }) "hermes-deploy"
@@ -109,14 +123,18 @@ if ($Update) { $UserArgs += "--update" }
 if ($WithBrowser) { $UserArgs += "--with-browser" }
 if ($Gateway) { $UserArgs += "--gateway" }
 
+function RemoteDevScript($file) {
+    $p = if ($PSScriptRoot) { Join-Path $PSScriptRoot "..\remote-dev\$file" } else { "" }
+    if ($p -and (Test-Path $p)) { return $p }
+    $p = Join-Path (WorkDir) $file
+    Invoke-WebRequest -UseBasicParsing "$(RawBase)/scripts/remote-dev/$file" -OutFile $p
+    $p
+}
+
 # --CloneFrom: the snapshot backup-pull.sh takes. cmd.exe pipes bytes; a PowerShell 5.1 pipe would re-encode the tar.
 if ($CloneFrom -and -not $DryRun -and -not $IdeOnly) {
     Say "Snapshot of $CloneFrom"
-    $snap = Join-Path $PSScriptRoot "..\remote-dev\backup-snapshot.sh"
-    if (-not $PSScriptRoot -or -not (Test-Path $snap)) {
-        $snap = Join-Path (WorkDir) "backup-snapshot.sh"
-        Invoke-WebRequest -UseBasicParsing "$(RawBase)/scripts/remote-dev/backup-snapshot.sh" -OutFile $snap
-    }
+    $snap = RemoteDevScript "backup-snapshot.sh"
     $Restore = Join-Path (WorkDir) "clone.tar.gz"
     Native { cmd /c "ssh -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 $CloneFrom bash -s < `"$snap`" > `"$Restore`"" }
     Write-Host ("{0:N0} MB" -f ((Get-Item $Restore).Length / 1MB))
@@ -238,18 +256,21 @@ if (-not $Key) {
 $Key = $Key -replace '\.pub$', ''
 $SshBase = @("-o", "ConnectionAttempts=3", "-o", "ServerAliveInterval=30")
 # -o, not -l: scp's -l is a bandwidth limit. Passed first: ssh keeps the first value, and -DryRun adds -o User.
-$AsRoot = @("-o", "User=root")
+# AsRoot logs in as root, or as the -Admin sudo user that stands in for it ($RSudo).
+if ($Admin) { $RootLogin = [switch]$true } else { $Admin = "root" }
+$AsRoot = @("-o", "User=$Admin")
+$RSudo = if ($Admin -eq "root") { "" } else { "sudo " }
 $Tty = @(); if (-not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) { $Tty = @("-t") }
 $CfgManual = $false
 
 if ($HostName) {
-    if (-not $Key -or -not (Test-Path $Key)) { Fail "no SSH key: pass -Key (ssh-keygen -t ed25519 makes one)" 4 }
+    if (-not $Key -or -not (Test-Path $Key)) { Fail "no SSH key: ssh-keygen -t ed25519 makes one; put its .pub on the host (docs/HERMES-RU.md, section 3), or pass -Key" 4 }
     Say "SSH: Host $Name -> $User@${HostName}:$Port ($Key)"
     $SshCfg = Join-Path $Home_ ".ssh\config"
     $keyPath = $Key -replace '\\', '/'
     # First in the file: ssh takes the first value it finds. "Match all" closes the block so global
     # options and Includes that used to open the file apply to every host again.
-    $block = "# >>> hermes-deploy $Name`nHost $Name`n  HostName $HostName`n  User $User`n  Port $Port`n  IdentityFile $keyPath`n  IdentitiesOnly yes`n  ServerAliveInterval 30`nMatch all`n# <<< hermes-deploy $Name"
+    $block = "# >>> hermes-deploy $Name`nHost $Name`n  HostName $HostName`n  User $User`n  Port $Port`n  IdentityFile `"$keyPath`"`n  IdentitiesOnly yes`n  ServerAliveInterval 30`nMatch all`n# <<< hermes-deploy $Name"
     $direct = @("-o", "HostName=$HostName", "-o", "User=$User", "-o", "Port=$Port", "-o", "IdentityFile=$keyPath", "-o", "IdentitiesOnly=yes")
     if ($DryRun) {
         Write-Host $block; Write-Host "(-DryRun: not written)"
@@ -276,7 +297,10 @@ if ($HostName) {
 }
 function SshErr($err, $who) {
     Write-Host (($err | Select-Object -Last 2) -join "`n") -ForegroundColor Red
-    if ("$err" -match "Permission denied") { Write-Host "the host refused the key: authorize $Key.pub for $who, or use -RootLogin" }
+    if ("$err" -match "Permission denied") {
+        if ($RootLogin -and $who -eq $Admin) { Write-Host "the host refused the key: add $Key.pub for $who there (docs/HERMES-RU.md, section 3)" }
+        else { Write-Host "the host refused the key: authorize $Key.pub for $who, or use -RootLogin / -Admin" }
+    }
     elseif ("$err" -match "timed out|refused|no route|unreachable") { Write-Host "host unreachable: check the address and the SSH allowlist" }
     exit 5
 }
@@ -296,23 +320,42 @@ function UploadBundle([string[]]$extra) {
 $Rcmd = "bash ~/.cache/hermes-deploy/bootstrap.sh"
 if (-not $IdeOnly) {
     if ($RootLogin) {
-        Say "System stage as root@$Name"
+        Say "System stage as $Admin@$Name"
         if (-not (Test-Path "$Key.pub")) { Fail "no $Key.pub to authorize for $User" 4 }
-        SshCheck $AsRoot "root"
-        if ($DryRun) { Write-Host "would run: bootstrap.sh system --user $User --pubkey <$Key.pub>" }
+        SshCheck $AsRoot $Admin
+        if ($DryRun) { Write-Host "would run: ${RSudo}bootstrap.sh system --user $User --pubkey <$Key.pub>" }
         else {
             UploadBundle $AsRoot
             $pub = ([IO.File]::ReadAllText("$Key.pub")).Trim()
-            Native { & ssh @AsRoot @SshBase @Tty $Name "$Rcmd system --user $(Q $User) --pubkey $(Q $pub)" }
+            Native { & ssh @AsRoot @SshBase @Tty $Name "$RSudo$Rcmd system --user $(Q $User) --pubkey $(Q $pub)" }
         }
     }
     Say "Login as $User@$Name"
     if ($DryRun -and $RootLogin) { Write-Host "(-DryRun: $User may not exist yet)" } else { SshCheck @() $User; Write-Host "ok" }
+    # -Lock needs root: the root or -Admin login, or the user's sudo. The address the host sees us from
+    # (a VPN exit, a NAT) is the one that must stay allowed, so the host is asked, not a what-is-my-IP service.
+    # sshd keeps admitting the Hermes user and the -Admin user: on Oracle Cloud the latter is the only way to root.
+    $LockAs = @(); $Sudo = "sudo "; $Admins = @($User)
+    if ($RootLogin) { $LockAs = $AsRoot; $Sudo = $RSudo }
+    if ($RootLogin -and $Admin -ne "root" -and $Admin -ne $User) { $Admins += $Admin }
+    if ($Lock) {
+        & ssh @LockAs @SshBase -n $Name "(command -v apt-get || command -v dnf) && command -v systemctl" | Out-Null
+        if ($LASTEXITCODE -ne 0) { Fail "-Lock supports Debian/Ubuntu and RHEL-family (dnf) hosts with systemd" 2 }
+        # no double quotes in a native argument: Windows PowerShell 5.1 would mangle them
+        $cur = "$(& ssh @LockAs @SshBase -n $Name 'printf %s ${SSH_CLIENT%% *}')".Trim()
+        if ($cur -and $Allow -notcontains $cur) {
+            $ans = "y"
+            if (-not [Console]::IsInputRedirected) { $ans = Read-Host "Your address as $Name sees it: $cur. Allow SSH from it? [Y/n]" }
+            if ($ans -notmatch '^[nN]') { $Allow += $cur }
+        }
+        if ($Allow.Count -eq 0) { Fail "-Lock with no address to allow would shut everyone out: pass -Allow" 2 }
+    }
     if ($DryRun) {
         Say "Plan (-DryRun)"
         if (-not $SkipSystem -and -not $RootLogin) { Write-Host "${Name}: bootstrap.sh system (sudo only for missing packages)" }
         if ($Restore -or $CloneFrom) { Write-Host "upload $(if ($Restore) { $Restore } else { "snapshot of $CloneFrom" }) -> restore" }
         Write-Host "${Name}: bootstrap.sh user $($UserArgs -join ' ') --vscode-settings machine"
+        if ($Lock) { Write-Host "${Name}: ${Sudo}harden-server.sh apply --allow $($Allow -join ' ') --admin-user $($Admins -join ' --admin-user ') (inbound: key-only SSH from these addresses; everything else closed)" }
         Write-Host "VS Code here: $((ExtList local.txt) -join ' '); defaultExtensions: $((ExtList remote.txt) -join ' ')"
         exit 0
     }
@@ -337,6 +380,22 @@ if (-not $IdeOnly) {
     $rc = $LASTEXITCODE
     if ($Restore) { & ssh @SshBase -n $Name "rm -f ~/.cache/hermes-deploy/restore.tar.gz" }
     if ($rc -ne 0) { Fail "user stage failed on $Name (exit $rc)" $rc }
+
+    if ($Lock) {
+        Say "Closing $Name to all but key-only SSH from $($Allow -join ' ')"
+        $hs = RemoteDevScript "harden-server.sh"
+        Native { & ssh @LockAs @SshBase -n $Name "umask 077; mkdir -p ~/.cache/hermes-deploy" }
+        Native { & scp -q @LockAs @SshBase $hs "${Name}:.cache/hermes-deploy/harden-server.sh" }
+        $args_ = (@($Allow | ForEach-Object { "--allow " + (Q $_) }) + @($Admins | ForEach-Object { "--admin-user " + (Q $_) })) -join " "
+        & ssh @LockAs @SshBase @Tty $Name "${Sudo}bash ~/.cache/hermes-deploy/harden-server.sh apply $args_"
+        if ($LASTEXITCODE -ne 0) { Fail "closing $Name failed; whatever it changed it undoes within 5 minutes" 6 }
+        # A new connection proves the allowlist lets this PC back in (Windows OpenSSH never multiplexes);
+        # without the confirm the host rolls the change back by itself after 5 minutes.
+        Say "Checking that a new connection gets in (this confirms the lock)"
+        & ssh @LockAs @SshBase @Tty -o ConnectTimeout=20 $Name "${Sudo}/usr/local/sbin/hermes-hardening confirm"
+        if ($LASTEXITCODE -ne 0) { Fail "a new connection did not get in: $Name undoes the firewall and sshd changes within 5 minutes. Wait for that, check -Allow, then rerun this same command." 6 }
+        Write-Host "locked: inbound is key-only SSH from $($Allow -join ' ')"
+    }
 }
 
 $ws = if ($Workspace) { $Workspace } elseif ($Dir) { $Dir } else { "$rhome/repos/hermes-agent" }
@@ -344,7 +403,7 @@ $ws = $ws -replace '^~', $rhome
 if ($Ide -eq "code") {
     Say "VS Code"
     $cli = CodeCli
-    if (-not $cli) { Write-Host "no VS Code: install it (winget install Microsoft.VisualStudioCode), then rerun with -IdeOnly" }
+    if (-not $cli) { Write-Host "no VS Code: install it (winget install Microsoft.VisualStudioCode), then rerun: hermes-deploy.ps1 -IdeOnly -Name $Name" }
     else {
         InstallExts $cli (ExtList local.txt) @()
         $settings = Join-Path $env:APPDATA "Code\User\settings.json"
@@ -358,6 +417,11 @@ if ($Ide -eq "code") {
 }
 Say "Done: ${Name}:$ws"
 if (-not $IdeOnly) {
-    Write-Host "Sign in once per CLI on the host (the browser opens here):"
-    Write-Host "  ssh -t $Name claude auth login    ssh -t $Name codex login --device-auth    ssh -t $Name agy"
+    Write-Host "Sign in once per CLI in a VS Code terminal on $Name (Terminal > New Terminal), or over ssh -t ${Name}:"
+    Write-Host "  claude auth login    codex login --device-auth    agy"
+    if ($Lock) {
+        $login = if ($RootLogin) { "-o User=$Admin " } else { "" }
+        Write-Host "SSH only from $($Allow -join ' '). Another address: rerun this command with the full -Allow list."
+        Write-Host "Undo: ssh -t $login$Name ${Sudo}/usr/local/sbin/hermes-hardening rollback"
+    }
 }
