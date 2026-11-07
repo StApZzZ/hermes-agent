@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from typing import Callable
 
 from hermes_cli.subcommands._shared import add_json_flag
 
 
-def build_approvals_parser(subparsers, *, cmd_approvals: Callable) -> None:
+def cmd_approvals(args):
+    """Dispatch `hermes approvals <subcmd>`."""
+    from hermes_cli.approvals_suggest import approvals_command
+
+    status = approvals_command(args)
+    if status:
+        sys.exit(status)
+    return status
+
+
+def build_approvals_parser(subparsers, *, cmd_approvals: Callable = cmd_approvals) -> None:
     """Attach the ``approvals`` subcommand to ``subparsers``."""
     approvals_parser = subparsers.add_parser(
         "approvals", help="Approval-prompt tools (mine history into allowlist proposals)",

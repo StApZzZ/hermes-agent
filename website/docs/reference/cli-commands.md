@@ -2042,6 +2042,23 @@ Group agents (profiles) into [spaces](../user-guide/spaces.md) — work, persona
 | `note <name> <text>` / `notes <name> [--remove N]` | Shared notes every agent of the space reads at session start. |
 | `show <name>` / `set <name> [--kind] [--title]` / `delete <name> [-y]` | Inspect, edit or delete a space (agents are kept). |
 
+## `hermes sync`
+
+```bash
+hermes sync <subcommand>
+```
+
+Two-way sync of settings, skills and memory with Hermes on an SSH host (the host runs `hermes sync agent` over SSH, so it needs a Hermes with this command). Covers `config.yaml`, `SOUL.md`, `profile.yaml`, `memories/`, user and edited skills, `spaces.yaml` and space notes, for the default profile and every named profile. Never covers `.env`, `auth.json`, sessions, databases or logs. Machine settings in `config.yaml` (`terminal`, `gateway` and messaging adapters, paths, `mcp_servers`, `sync`, plus `sync.local_keys`) stay on each machine.
+
+| Subcommand | Description |
+|------------|-------------|
+| `status` (default) | Synced hosts, last sync per host, timer state. |
+| `run [HOST]... [--dry-run]` | Sync now with each HOST (default: `sync.hosts`). |
+| `enable HOST [--every MINUTES]` | Sync now, add HOST to `sync.hosts` and install a `systemd --user` timer (`sync.interval_minutes`, default 10). |
+| `disable HOST` | Remove HOST from `sync.hosts`; the timer is removed with the last host. |
+
+Changes on one side are copied, deletions follow unless the other side edited the file. When both sides changed, `config.yaml` keys and memory entries merge individually (a clash on one key goes to the newer file); other files keep the newer copy and save the other under `<HERMES_HOME>/sync/<host>/conflicts/`.
+
 ## `hermes completion`
 
 ```bash
