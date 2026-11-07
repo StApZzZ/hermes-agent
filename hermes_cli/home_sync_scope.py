@@ -29,9 +29,12 @@ _RULES = (
 _SKILL_PATH = re.compile(rf"{_HOME}skills/(.+)")
 _PROFILE_DIR = re.compile(_NAME)
 
-# Per-machine skill bookkeeping: usage counters and the bundled-seed manifest describe THIS
-# installation; hub locks, the archive and curator suppressions are user decisions and travel.
-_SKILLS_BOOKKEEPING = frozenset({".usage.json", ".bundled_manifest", ".no-bundled-skills"})
+# Per-machine skill bookkeeping describes THIS installation: usage counters, curator run state,
+# the bundled-seed manifest, and the hub's install records, audit log and scan cache (a hub skill
+# that arrives by sync is an ordinary skill on the other side). Hub taps, the archive and curator
+# suppressions are the user's decisions and travel.
+_SKILLS_BOOKKEEPING = frozenset({".usage.json", ".curator_state", ".bundled_manifest", ".no-bundled-skills"})
+_HUB_BOOKKEEPING = frozenset({"lock.json", "audit.log", "scan-cache"})
 _SKIP_DIRS = frozenset({"__pycache__", ".git", "node_modules", ".venv", "venv"})
 _HOME_FILES = ("config.yaml", "profile.yaml", "SOUL.md", "memories/MEMORY.md", "memories/USER.md")
 
@@ -39,6 +42,8 @@ _HOME_FILES = ("config.yaml", "profile.yaml", "SOUL.md", "memories/MEMORY.md", "
 def _skill_rest_ok(rest: str) -> bool:
     parts = rest.split("/")
     if parts[0] in _SKILLS_BOOKKEEPING or any(p in _SKIP_DIRS for p in parts):
+        return False
+    if parts[0] == ".hub" and len(parts) > 1 and parts[1] in _HUB_BOOKKEEPING:
         return False
     name = parts[-1]
     return not (name.endswith((".lock", ".pyc")) or name.startswith(".tmp"))

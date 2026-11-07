@@ -196,6 +196,7 @@ def test_dry_run_changes_nothing(roots):
 @pytest.mark.parametrize("rel", [
     ".env", "auth.json", "state.db", "sessions/x.json", "logs/agent.log", "profiles/work/.env",
     "skills/../.env", "skills/.usage.json", "skills/.bundled_manifest", "/etc/passwd",
+    "skills/.curator_state", "skills/.hub/lock.json", "skills/.hub/audit.log", "skills/.hub/scan-cache/a.json",
     "profiles/../config.yaml", "spaces/chat_selections.json",
 ])
 def test_secrets_runtime_state_and_escapes_are_outside_the_scope(rel):
@@ -206,7 +207,7 @@ def test_secrets_runtime_state_and_escapes_are_outside_the_scope(rel):
     ("config.yaml", KIND_YAML), ("profiles/work/config.yaml", KIND_YAML), ("spaces.yaml", KIND_YAML),
     ("memories/USER.md", KIND_ENTRIES), ("spaces/SHARED.md", KIND_ENTRIES),
     ("spaces/work/SPACE.md", KIND_ENTRIES), ("SOUL.md", KIND_FILE), ("skills/dev/x/SKILL.md", KIND_FILE),
-    ("skills/.hub/lock.json", KIND_FILE),
+    ("skills/.hub/taps.json", KIND_FILE), ("skills/.archive/old/SKILL.md", KIND_FILE),
 ])
 def test_user_data_is_inside_the_scope(rel, kind):
     assert kind_of(rel) == kind
