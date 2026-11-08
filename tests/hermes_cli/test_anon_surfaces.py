@@ -31,6 +31,9 @@ from hermes_cli.auth import _load_auth_store
 from hermes_constants import get_hermes_home
 from tests.hermes_cli.anon_portal import as_local_desktop_backend, off_local_desktop
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 WELCOME = "https://welcome-api.nousresearch.com/v1"
 # Words that must never appear on a user-facing free-tier surface.
 _FORBIDDEN = re.compile(r"guest|anonymous|user id|org id|nas_user|nas_organisation", re.IGNORECASE)

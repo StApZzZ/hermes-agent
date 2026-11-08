@@ -22,6 +22,9 @@ from hermes_cli.auth_nous import resolve_nous_runtime_credentials
 
 from tests.hermes_cli.anon_portal import WELCOME, claimed_trial, install_portal, make_jwt
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 @pytest.fixture
 def nas(monkeypatch, tmp_path):
