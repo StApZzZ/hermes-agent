@@ -2116,6 +2116,28 @@ Two-way sync of settings, skills and memory with Hermes on an SSH host (the host
 
 Changes on one side are copied, deletions follow unless the other side edited the file. When both sides changed, `config.yaml` keys and memory entries merge individually (a clash on one key goes to the newer file); other files keep the newer copy and save the other under `<HERMES_HOME>/sync/<host>/conflicts/`.
 
+## `hermes repos`
+
+```bash
+hermes repos [scan|apply] [ROOT]... [--only NAME,...]
+```
+
+Set Hermes up with what your own repositories already ship. Reads the git checkouts directly under each ROOT (default: the folder holding the current repository); nothing in a repository is run.
+
+| Found in a repository | Set up as |
+|---|---|
+| An MCP server: a console script named `*mcp*`, a PEP 723 `*.py` importing `mcp`/`FastMCP`, a Node package on `@modelcontextprotocol/sdk` | An `mcp_servers` entry: stdio from the repo's `.venv`, `uv run` or `node`, with `cwd` at the repo; the local URL when a `systemd --user` unit already serves that file with `--http`; disabled while `.env.example` has no `.env` beside it |
+| Project skills in `.hermes/skills`, `.agents/skills` or `.claude/skills` | The repo joins `skills.trusted_project_dirs` (they load in sessions started inside it) |
+| A skill pack (`SKILL.md` files in a top-level folder) | `skills.external_dirs` |
+| Console tools (`[project.scripts]`, `package.json` `bin`; `*bot` services skipped) | A generated skill `repo-<name>` under `<HERMES_HOME>/repo-skills/` naming each command with its absolute path |
+
+| Subcommand | Description |
+|------------|-------------|
+| `scan [ROOT]...` (default) | Print the plan. |
+| `apply [ROOT]... [--only NAME,...]` | Carry it out. A re-run updates what `hermes repos` added (recorded in `repo-skills/manifest.json`) and never replaces an MCP entry of yours with the same name. |
+
+Hermes checkouts are skipped, and so are vendored trees (`.venv`, `node_modules`, `site-packages`). Every path is this machine's, so none of it travels with `hermes sync`. Changes take effect in new sessions.
+
 ## `hermes completion`
 
 ```bash

@@ -265,7 +265,6 @@ from typing import Optional
 from hermes_cli.subcommands.cron import build_cron_parser
 from hermes_cli.subcommands.gateway import build_gateway_parser
 from hermes_cli.subcommands.profile import build_profile_parser
-from hermes_cli.subcommands.space import build_space_parser
 from hermes_cli.subcommands.model import build_model_parser
 from hermes_cli.subcommands.setup import build_setup_parser
 
@@ -298,8 +297,7 @@ from hermes_cli.subcommands.logs import build_logs_parser
 from hermes_cli.subcommands.prompt_size import build_prompt_size_parser
 from hermes_cli.subcommands.memory import build_memory_parser
 from hermes_cli.subcommands.acp import build_acp_parser
-from hermes_cli.subcommands.remote import build_remote_parser
-from hermes_cli.subcommands.sync import build_sync_parser
+from hermes_cli.subcommands.fork_commands import build_fork_parsers
 from hermes_cli.subcommands.tools import build_tools_parser
 from hermes_cli.subcommands.insights import build_insights_parser
 from hermes_cli.subcommands.usage import build_usage_parser
@@ -2636,7 +2634,8 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
         "model", "monitoring", "pairing", "pause", "peer", "pets", "plugins", "portal", "profile",
-        "project", "proxy", "prompt-size", "remote", "resume", "send", "sessions", "setup", "space", "sync",
+        "project", "proxy", "prompt-size", "remote", "repos", "resume", "send", "sessions", "setup", "space",
+        "sync",
         "skin", "skills", "slack", "status", "tools", "uninstall", "update",
         "usage", "vault",
         "webhook", "whatsapp", "whatsapp-cloud", "worktree", "chat", "secrets", "security",
@@ -3257,10 +3256,8 @@ def _build_cli_parser():
     build_update_parser(subparsers, cmd_update=cmd_update)
     build_uninstall_parser(subparsers, cmd_uninstall=cmd_uninstall)
     build_acp_parser(subparsers, cmd_acp=cmd_acp)
-    build_remote_parser(subparsers)
-    build_sync_parser(subparsers)
+    build_fork_parsers(subparsers)
     build_profile_parser(subparsers, cmd_profile=cmd_profile)
-    build_space_parser(subparsers)
     build_completion_parser(subparsers, cmd_completion=cmd_completion, parser=parser)
     build_dashboard_parser(
         subparsers, cmd_dashboard=cmd_dashboard, cmd_dashboard_register=cmd_dashboard_register)

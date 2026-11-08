@@ -471,6 +471,7 @@ Repos can carry their own skills, active only for sessions started inside that p
 ```text
 <project-root>/.hermes/skills/    # Hermes-native location
 <project-root>/.agents/skills/    # cross-tool convention (shared with other agent CLIs)
+<project-root>/.claude/skills/    # Claude Code's project skills, same SKILL.md format
 ```
 
 The project root is the nearest ancestor directory containing `.git` (worktrees and submodules count).
@@ -492,6 +493,8 @@ hermes skills untrust           # revoke
 ```
 
 Trusted roots are stored in `skills.trusted_project_dirs` in `~/.hermes/config.yaml`. Set `skills.project_discovery: false` to turn the feature off entirely (no scanning, no notices).
+
+To trust every repository of yours that carries project skills at once — and set up the MCP servers, skill packs and console tools they ship — see [`hermes repos`](../../reference/cli-commands.md#hermes-repos).
 
 ### Precedence
 
