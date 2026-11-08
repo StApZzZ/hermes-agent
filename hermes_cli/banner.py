@@ -224,6 +224,9 @@ def format_banner_version_label() -> str:
         return label
 
     base = f"Hermes Agent v{get_version_info().derived_version} ({RELEASE_DATE})"
+    from hermes_cli.fork_version import fork_version
+    fork = fork_version(Path(get_project_root()))
+    base += f" · fork {fork}" if fork else ""
     from hermes_cli.config import load_config
     from hermes_cli.update_channel import resolve_update_channel
 

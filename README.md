@@ -39,6 +39,8 @@
 
 New to Hermes? Start with the beginner's guide in Russian: [docs/HERMES-RU.md](docs/HERMES-RU.md). It is built around the default setup: VS Code on your PC, Hermes and the subscription CLIs on a server over Remote-SSH — what gets installed, first steps, spaces, memory, keeping a PC and the server in sync, and privacy.
 
+What changed in each fork release (`fork-YYYY.MM.DD` tags; `hermes --version` shows `fork <version>`): [docs/CHANGELOG-RU.md](docs/CHANGELOG-RU.md).
+
 The whole environment (Hermes, the subscription CLIs, VS Code) on a server, in WSL or locally: [scripts/deploy/README.md](scripts/deploy/README.md). Hermes alone, instead of upstream (Linux, macOS, WSL2):
 
 ```bash
