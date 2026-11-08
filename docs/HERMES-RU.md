@@ -293,6 +293,15 @@ hermes repos scan          # что нашлось в соседних папк�
 hermes repos apply         # подключить
 ```
 
+Где и что искать — аргументами (у `scan` и `apply` они одинаковые):
+
+```bash
+hermes repos scan ~/mcp-repos ~/work         # проекты в этих папках
+hermes repos scan ~/repos/maps-parser        # один проект
+hermes repos scan --only my-vpn,maps-parser  # только эти проекты
+hermes repos scan --kind mcp                 # только MCP-серверы (ещё: skills, tools)
+```
+
 Что он делает с найденным:
 
 - **MCP-сервер в репозитории** — добавляет его в Hermes. Если серверу нужен `.env`, а его ещё нет, —

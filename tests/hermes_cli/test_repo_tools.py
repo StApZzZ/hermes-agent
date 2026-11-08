@@ -139,3 +139,17 @@ def test_by_default_it_reads_the_folder_holding_the_current_project(world, monke
     monkeypatch.chdir(world["maps"])  # a Python project without .git
 
     assert repo_tools.default_roots() == [world["root"].resolve()]
+
+
+def test_a_path_can_name_one_project_and_filters_narrow_what_is_set_up(world):
+    one = repo_tools.scan([world["maps"]])
+    assert [f.repo.name for f in one] == ["maps"]
+
+    picked = repo_tools.scan([world["root"]], only=["vpn", "maps"], kinds=["skills"])
+    assert [f.repo.name for f in picked] == ["vpn"]  # maps offers no skills
+    assert not picked[0].mcp and not picked[0].commands
+
+    repo_tools.apply(repo_tools.scan([world["root"]], kinds=["mcp"]))
+    cfg = config(world)
+    assert set(cfg["mcp_servers"]) == {"maps", "telegram"}
+    assert not cfg["skills"].get("trusted_project_dirs")

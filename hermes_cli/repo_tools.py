@@ -58,17 +58,39 @@ def default_roots() -> list[Path]:
     return [project.parent if project else cwd]
 
 
-def scan(roots: list[Path]) -> list[RepoFinding]:
+KINDS = ("mcp", "skills", "tools")
+
+
+def _projects(path: Path) -> list[Path]:
+    """``path`` itself when it is a project, else the projects directly under it."""
+    from hermes_cli.repo_tools_scan import is_project
+    path = path.expanduser().resolve()
+    return [path] if is_project(path) else repos_under(path)
+
+
+def _keep_kinds(finding: RepoFinding, kinds: set[str]) -> RepoFinding:
+    if "mcp" not in kinds:
+        finding.mcp = []
+    if "skills" not in kinds:
+        finding.project_skills, finding.skill_packs = 0, {}
+    if "tools" not in kinds:
+        finding.commands = {}
+    return finding
+
+
+def scan(paths: list[Path], *, only=(), kinds=KINDS) -> list[RepoFinding]:
+    """Findings for the projects at or under ``paths``; ``only`` keeps those folder names, ``kinds``
+    keeps those of ``KINDS``."""
     from hermes_platform.resolver import locate_command
     uv, node = (locate_command(name).command for name in ("uv", "node"))
     uv, node = (uv[0] if uv else None), (node[0] if node else None)
-    services = user_service_targets()
+    services, only, kinds = user_service_targets(), set(only), set(kinds)
     findings = []
-    for root in roots:
-        for repo in repos_under(root.expanduser().resolve()):
-            if is_hermes_checkout(repo):
+    for path in paths:
+        for repo in _projects(path):
+            if is_hermes_checkout(repo) or (only and repo.name not in only):
                 continue
-            finding = scan_repo(repo, uv=uv, node=node, services=services)
+            finding = _keep_kinds(scan_repo(repo, uv=uv, node=node, services=services), kinds)
             if not finding.empty:
                 findings.append(finding)
     _dedupe_server_names(findings)
@@ -218,20 +240,27 @@ def _describe(finding: RepoFinding) -> list[str]:
     return lines
 
 
+def _names(raw: str | None) -> list[str]:
+    return [name.strip() for name in (raw or "").split(",") if name.strip()]
+
+
 def cmd_repos(args) -> int:
     roots = [Path(r) for r in (args.roots or [])] or default_roots()
-    findings = scan(roots)
+    kinds = _names(getattr(args, "kind", None)) or list(KINDS)
+    unknown = sorted(set(kinds) - set(KINDS))
+    if unknown:
+        print(f"Unknown --kind {', '.join(unknown)}: choose from {', '.join(KINDS)}.")
+        return 2
+    findings = scan(roots, only=_names(getattr(args, "only", None)), kinds=kinds)
     if not findings:
         print(f"Nothing to set up in {', '.join(map(str, roots))}.")
         return 0
     if args.repos_action != "apply":
         for finding in findings:
             print("\n".join(_describe(finding)))
-        print("\nApply with: hermes repos apply " + " ".join(map(str, roots)))
+        print("\nApply with: hermes repos apply " + " ".join(map(str, roots))
+              + "".join(f" --{opt} {getattr(args, opt)}" for opt in ("only", "kind") if getattr(args, opt, None)))
         return 0
-    only = {name.strip() for name in (args.only or "").split(",") if name.strip()}
-    if only:
-        findings = [f for f in findings if f.repo.name in only]
     for line in apply(findings):
         print(line)
     print("\nNew sessions pick these up. Check an MCP server with `hermes mcp test NAME`;"

@@ -2119,10 +2119,10 @@ Changes on one side are copied, deletions follow unless the other side edited th
 ## `hermes repos`
 
 ```bash
-hermes repos [scan|apply] [ROOT]... [--only NAME,...]
+hermes repos [scan|apply] [PATH]... [--only NAME,...] [--kind mcp,skills,tools]
 ```
 
-Set Hermes up with what your own repositories already ship. Reads the git checkouts directly under each ROOT (default: the folder holding the current repository); nothing in a repository is run.
+Set Hermes up with what your own repositories already ship. Each PATH is a project (a git checkout, or a folder with `pyproject.toml`, `package.json` or `setup.py`) or a folder of projects, read one level deep; the default is the folder holding the current project. Nothing in a repository is run.
 
 | Found in a repository | Set up as |
 |---|---|
@@ -2133,10 +2133,10 @@ Set Hermes up with what your own repositories already ship. Reads the git checko
 
 | Subcommand | Description |
 |------------|-------------|
-| `scan [ROOT]...` (default) | Print the plan. |
-| `apply [ROOT]... [--only NAME,...]` | Carry it out. A re-run updates what `hermes repos` added (recorded in `repo-skills/manifest.json`) and never replaces an MCP entry of yours with the same name. |
+| `scan [PATH]...` (default) | Print the plan. |
+| `apply [PATH]...` | Carry it out. A re-run updates what `hermes repos` added (recorded in `repo-skills/manifest.json`) and never replaces an MCP entry of yours with the same name. |
 
-Hermes checkouts are skipped, and so are vendored trees (`.venv`, `node_modules`, `site-packages`). Every path is this machine's, so none of it travels with `hermes sync`. Changes take effect in new sessions.
+Both take `--only NAME,...` (project folder names) and `--kind mcp,skills,tools` (what to look for). Hermes checkouts are skipped, and so are vendored trees (`.venv`, `node_modules`, `site-packages`). Every path is this machine's, so none of it travels with `hermes sync`. Changes take effect in new sessions.
 
 ## `hermes completion`
 
