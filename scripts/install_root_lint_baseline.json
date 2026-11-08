@@ -43,6 +43,7 @@
     "hermes_cli/plugins.py": 1,
     "hermes_cli/profiles.py": 1,
     "hermes_cli/source_completion.py": 1,
+    "hermes_cli/subcommands/remote.py": 1,
     "hermes_cli/update_handoff.py": 1,
     "hermes_cli/update_host_obligation.py": 1,
     "hermes_cli/update_lock.py": 1,

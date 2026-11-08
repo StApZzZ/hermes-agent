@@ -13,7 +13,7 @@ def build_sync_parser(subparsers) -> None:
         "sync", help="Keep settings, skills and memory in step with Hermes on SSH hosts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Two-way sync of config.yaml, SOUL.md, skills, memory (MEMORY.md, USER.md) and spaces, "
-                    "for every profile, with Hermes on an SSH host.\n"
+                    "for the default profile and those listed in sync.profiles, with Hermes on an SSH host.\n"
                     "Secrets (.env, auth.json), sessions and logs stay on each machine, and so do "
                     "machine settings in config.yaml (terminal, gateway and messaging, paths).\n\n"
                     "  hermes sync run hermes-dev        sync now (--dry-run: only show)\n"
