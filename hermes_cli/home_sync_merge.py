@@ -28,6 +28,7 @@ MACHINE_LOCAL_CONFIG_KEYS = (
     "browser.executable_path", "browser.user_data_dir",
     "skills.external_dirs", "skills.create_dir", "skills.trusted_project_dirs",
     "wake_word.model_dir", "moa.trace_dir", "vault.*.binary_path", "secrets.*.binary_path",
+    "update.installs",  # this machine's checkouts, keyed by install id, with their paths
 )
 # A space's bound folders are paths on one machine.
 MACHINE_LOCAL_SPACES_KEYS = ("spaces.*.paths",)

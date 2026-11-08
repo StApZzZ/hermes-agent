@@ -1,6 +1,7 @@
 """What ``hermes sync`` carries between two Hermes installations, and how each path merges.
 
-The scope is an allowlist: settings, persona, built-in memory, skills and spaces. Secrets
+The scope is an allowlist: settings, persona, built-in memory, skills and spaces, of the default
+profile and of the named profiles listed in ``sync.profiles``. Secrets
 (``.env``, ``auth.json``), sessions, databases, logs and caches are outside it by construction,
 and both ends evaluate the same predicate, so a peer can never be asked to read or write a path
 outside it. Bundled skills that still match their shipped hash are skipped: each installation
@@ -62,6 +63,12 @@ def kind_of(rel: str) -> str | None:
     return KIND_FILE if match and _skill_rest_ok(match.group(1)) else None
 
 
+def in_profiles(rel: str, profiles) -> bool:
+    """Whether ``rel`` belongs to the default profile or to one of the named ``profiles``."""
+    parts = rel.split("/", 2)
+    return parts[0] != "profiles" or (len(parts) == 3 and parts[1] in profiles)
+
+
 def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -92,16 +99,17 @@ def pristine_bundled_dirs(skills: Path) -> set[Path]:
     return pristine
 
 
-def _homes(root: Path) -> list[tuple[str, Path]]:
+def _homes(root: Path, profiles: frozenset[str]) -> list[tuple[str, Path]]:
+    """The default profile, plus the named profiles the user chose to sync (``sync.profiles``):
+    other agents (a work team, a bot) stay on their machine unless listed."""
     from hermes_constants import named_profile_has_identity
 
     homes = [("", root)]
-    profiles = root / "profiles"
-    if profiles.is_dir():
-        for entry in sorted(profiles.iterdir()):
-            if (_PROFILE_DIR.fullmatch(entry.name) and entry.is_dir() and not entry.is_symlink()
-                    and named_profile_has_identity(entry)):
-                homes.append((f"profiles/{entry.name}/", entry))
+    for name in sorted(profiles):
+        entry = root / "profiles" / name
+        if (_PROFILE_DIR.fullmatch(name) and entry.is_dir() and not entry.is_symlink()
+                and named_profile_has_identity(entry)):
+            homes.append((f"profiles/{name}/", entry))
     return homes
 
 
@@ -124,10 +132,11 @@ def _scan_skills(out: dict, root: Path, prefix: str, skills: Path) -> None:
             _record(out, root, f"{prefix}skills/{rel_in_skills}")
 
 
-def scan(root: Path) -> dict[str, dict]:
-    """``{rel_path: {"hash", "mtime"}}`` for every in-scope file under the installation root."""
+def scan(root: Path, profiles=()) -> dict[str, dict]:
+    """``{rel_path: {"hash", "mtime"}}`` for every in-scope file under the installation root, for
+    the default profile and the named ``profiles`` given."""
     out: dict[str, dict] = {}
-    for prefix, home in _homes(root):
+    for prefix, home in _homes(root, frozenset(profiles)):
         for name in _HOME_FILES:
             _record(out, root, prefix + name)
         _scan_skills(out, root, prefix, home / "skills")

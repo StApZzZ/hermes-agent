@@ -2048,7 +2048,7 @@ Group agents (profiles) into [spaces](../user-guide/spaces.md) — work, persona
 hermes sync <subcommand>
 ```
 
-Two-way sync of settings, skills and memory with Hermes on an SSH host (the host runs `hermes sync agent` over SSH, so it needs a Hermes with this command). Covers `config.yaml`, `SOUL.md`, `profile.yaml`, `memories/`, user and edited skills, `spaces.yaml` and space notes, for the default profile and every named profile. Never covers `.env`, `auth.json`, sessions, databases or logs. Machine settings in `config.yaml` (`terminal`, `gateway` and messaging adapters, paths, `mcp_servers`, `sync`, plus `sync.local_keys`) stay on each machine.
+Two-way sync of settings, skills and memory with Hermes on an SSH host (the host runs `hermes sync agent` over SSH, so it needs a Hermes with this command). Covers `config.yaml`, `SOUL.md`, `profile.yaml`, `memories/`, user and edited skills, `spaces.yaml` and space notes, for the default profile and the named profiles listed in `sync.profiles` (others stay on their machine; unlisting one deletes it nowhere). Never covers `.env`, `auth.json`, sessions, databases or logs. Machine settings in `config.yaml` (`terminal`, `gateway` and messaging adapters, paths, `mcp_servers`, `sync`, plus `sync.local_keys`) stay on each machine.
 
 | Subcommand | Description |
 |------------|-------------|

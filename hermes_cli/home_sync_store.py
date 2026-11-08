@@ -138,7 +138,7 @@ def handle_request(root: Path, request: dict) -> dict:
     if op == "hello":
         return {"protocol": PROTOCOL}
     if op == "scan":
-        return {"files": scan(root)}
+        return {"files": scan(root, [str(p) for p in request.get("profiles") or []])}
     if op == "read":
         return {"files": read_texts(root, list(request.get("paths") or []))}
     if op == "apply":

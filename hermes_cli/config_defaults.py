@@ -1483,9 +1483,9 @@ DEFAULT_CONFIG = {
     # long-unused skills stale, archives (never deletes) obsolete ones, optionally consolidates
     # overlaps via a forked aux-model agent. Inactivity-triggered from session start, no cron
     # daemon. `hermes curator status` shows the last run.
-    # `hermes sync` with Hermes on SSH hosts: hosts for `sync run`/the timer, timer period, and extra config.yaml
-    # keys each machine keeps for itself (dotted, `*` = one level) on top of terminal/gateway/messaging/paths.
-    "sync": {"hosts": [], "interval_minutes": 10, "local_keys": []},
+    # `hermes sync` with Hermes on SSH hosts: hosts for `sync run`/the timer, timer period, named profiles synced
+    # besides the default one (others stay put), extra config.yaml keys each machine keeps (dotted, `*` = one level).
+    "sync": {"hosts": [], "interval_minutes": 10, "profiles": [], "local_keys": []},
     "curator": {
         "enabled": True,
         "interval_hours": 24 * 7,  # hours between runs

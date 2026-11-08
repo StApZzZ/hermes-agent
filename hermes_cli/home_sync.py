@@ -67,12 +67,12 @@ def sync_host(host: str, *, dry_run: bool = False, peer=None):
     from hermes_cli.auth import _file_lock
     from hermes_cli.home_sync_engine import sync_with
 
-    root = _root()
+    root, settings = _root(), _settings()
     peer = peer or SshPeer(host)
     with _file_lock(root / "sync" / host / ".lock", threading.local(), 2.0,
                     f"another `hermes sync` with {host} is running"):
-        return sync_with(peer, host, root, dry_run=dry_run,
-                         extra_local_keys=tuple(_settings().get("local_keys") or ()))
+        return sync_with(peer, host, root, dry_run=dry_run, profiles=tuple(settings.get("profiles") or ()),
+                         extra_local_keys=tuple(settings.get("local_keys") or ()))
 
 
 def _print_report(report) -> None:
@@ -157,6 +157,7 @@ def _sync_status(_args) -> int:
     hosts = list(settings.get("hosts") or [])
     known = sorted({p.name for p in (root / "sync").glob("*") if p.is_dir()} | set(hosts))
     print(f"Timer: {home_sync_timer.state()} (every {settings.get('interval_minutes', 10)} min)")
+    print(f"Profiles: default{''.join(f', {p}' for p in settings.get('profiles') or [])} (sync.profiles)")
     for host in known:
         synced_at = load_state(root, host).get("synced_at")
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(synced_at)) if synced_at else "never"

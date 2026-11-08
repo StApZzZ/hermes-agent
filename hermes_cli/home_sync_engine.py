@@ -18,7 +18,7 @@ from typing import Any, Protocol
 from hermes_cli.home_sync_merge import (
     DELETE_LOCAL, DELETE_REMOTE, DROP, MACHINE_LOCAL_CONFIG_KEYS, MACHINE_LOCAL_SPACES_KEYS, MERGE,
     MISSING, PULL, PUSH, SAME, graft, merge3, merge_entries, parse_patterns, plan_path, split_local)
-from hermes_cli.home_sync_scope import KIND_ENTRIES, KIND_FILE, KIND_YAML, kind_of, scan
+from hermes_cli.home_sync_scope import KIND_ENTRIES, KIND_FILE, KIND_YAML, in_profiles, kind_of, scan
 from hermes_cli.home_sync_store import SyncError, apply_ops
 
 STATE_VERSION = 1
@@ -289,13 +289,20 @@ def _keep_conflict_copies(root: Path, host: str, copies: dict[str, bytes], stamp
     return str(target)
 
 
-def sync_with(peer: Peer, host: str, root: Path, *, dry_run: bool = False,
+def sync_with(peer: Peer, host: str, root: Path, *, dry_run: bool = False, profiles=(),
               extra_local_keys=(), now: float | None = None) -> Report:
-    """Run one bidirectional sync between ``root`` and ``peer``; returns what changed."""
+    """Run one bidirectional sync between ``root`` and ``peer`` (the default profile plus the named
+    ``profiles``); returns what changed."""
     report = Report(host=host, dry_run=dry_run)
-    state = load_state(root, host)
-    local, remote = scan(root), peer.call({"op": "scan"})["files"]
-    planned = _plan(root, local, remote, state["paths"])
+    profiles = frozenset(profiles)
+    # A peer that predates sync.profiles returns every profile, and the base may still hold an
+    # unlisted one from an earlier run; either would read as "deleted here" and delete on the
+    # other side. Unlisted profiles are out of this run entirely, and drop out of the base.
+    base = {rel: e for rel, e in load_state(root, host)["paths"].items() if in_profiles(rel, profiles)}
+    local = scan(root, profiles)
+    remote = {rel: meta for rel, meta in peer.call({"op": "scan", "profiles": sorted(profiles)})["files"].items()
+              if in_profiles(rel, profiles)}
+    planned = _plan(root, local, remote, base)
     _load_contents(root, peer, planned)
     ops = _build(planned, report, extra_local_keys)
     if dry_run:
@@ -305,6 +312,6 @@ def sync_with(peer: Peer, host: str, root: Path, *, dry_run: bool = False,
         root, host, ops.conflict_copies, time.strftime("%Y%m%d-%H%M%S", time.localtime(now)))
     remote_hashes = peer.call({"op": "apply", "ops": ops.remote})["hashes"] if ops.remote else {}
     local_hashes = apply_ops(root, ops.local) if ops.local else {}
-    paths = _new_base(root, local, remote, state["paths"], ops, (local_hashes, remote_hashes), extra_local_keys)
+    paths = _new_base(root, local, remote, base, ops, (local_hashes, remote_hashes), extra_local_keys)
     _save_state(root, host, paths, now)
     return report

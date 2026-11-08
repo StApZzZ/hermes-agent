@@ -72,7 +72,8 @@ def test_first_sync_unites_both_sides_and_keeps_machine_settings(roots):
     put(local, "SOUL.md", "You are Hermes.")
     put(local, "skills/mine/notes/SKILL.md", "---\nname: notes\n---\nTake notes.")
     put(local, "memories/MEMORY.md", "deploys on thursdays")
-    put(local, "config.yaml", "model:\n  provider: claude-cli\nterminal:\n  cwd: /home/alex\n")
+    put(local, "config.yaml", "model:\n  provider: claude-cli\nterminal:\n  cwd: /home/alex\n"
+                              "sync:\n  profiles: [work]\n")
     put(local, "profiles/work/config.yaml", "model:\n  provider: codex-cli\n")
     put(local, "profiles/work/SOUL.md", "You are the work agent.")
     put(local, "profiles/work/memories/USER.md", "works at ACME")
@@ -248,6 +249,7 @@ def test_untouched_bundled_skills_stay_home_but_edited_ones_travel(roots):
 def test_a_profile_deleted_on_the_peer_is_not_brought_back(roots):
     from hermes_constants import profile_tombstone_path
     local, remote, peer = roots
+    put(local, "config.yaml", "sync:\n  profiles: [work]\n")
     put(local, "profiles/work/config.yaml", "model:\n  provider: codex-cli\n")
     put(remote, "skills/other/SKILL.md", "---\nname: other\n---\n")
     tombstone = profile_tombstone_path(remote / "profiles" / "work")
@@ -259,6 +261,43 @@ def test_a_profile_deleted_on_the_peer_is_not_brought_back(roots):
     assert not (remote / "profiles/work/config.yaml").exists()
     assert not (local / "skills/other/SKILL.md").exists()  # nothing half-applied
 
+
+def test_unlisted_profiles_stay_on_their_machine(roots):
+    local, remote, peer = roots
+    put(local, "config.yaml", "sync:\n  profiles: [personal]\n")
+    put(local, "profiles/personal/SOUL.md", "You are my assistant.")
+    put(local, "profiles/team/SOUL.md", "You are the work team.")
+    put(remote, "profiles/bot/SOUL.md", "You are the server bot.")
+
+    sync(peer)
+
+    assert (remote / "profiles/personal/SOUL.md").read_text() == "You are my assistant."
+    assert not (remote / "profiles/team").exists()
+    assert not (local / "profiles/bot").exists()
+
+
+class PeerBeforeProfiles(DirPeer):
+    """A host whose Hermes predates ``sync.profiles``: its scan reports every profile."""
+
+    def call(self, request: dict) -> dict:
+        if request.get("op") == "scan":
+            request = {**request, "profiles": [p.name for p in (self.root / "profiles").iterdir()]}
+        return super().call(request)
+
+
+def test_unlisting_a_profile_deletes_it_nowhere_even_against_an_older_peer(roots, monkeypatch):
+    local, remote, peer = roots
+    put(local, "config.yaml", "sync:\n  profiles: [work]\n")
+    put(local, "profiles/work/SOUL.md", "You are the work agent.")
+    sync(peer)
+    assert (remote / "profiles/work/SOUL.md").is_file()
+
+    put(local, "config.yaml", "sync:\n  profiles: []\n")
+    report = sync(PeerBeforeProfiles(remote, monkeypatch))
+
+    assert not report.deleted_local and not report.deleted_remote
+    assert (local / "profiles/work/SOUL.md").read_text() == "You are the work agent."
+    assert (remote / "profiles/work/SOUL.md").read_text() == "You are the work agent."
 
 def test_a_missing_reply_names_the_fix():
     with pytest.raises(SyncError, match="hermes update"):
