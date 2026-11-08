@@ -16,6 +16,9 @@ from hermes_cli import anon_auth, install_state
 from tests.hermes_cli.anon_portal import as_local_desktop_backend, install_portal
 from tui_gateway import server
 
+# The Nous free tier is opt-in (nous.guest defaults to false); these tests exercise it.
+pytestmark = pytest.mark.usefixtures("nous_guest_enabled")
+
 
 @pytest.fixture
 def root(tmp_path, monkeypatch) -> Path:

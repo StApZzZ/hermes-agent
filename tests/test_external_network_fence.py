@@ -11,6 +11,7 @@ import socket
 import pytest
 
 
+@pytest.mark.usefixtures("nous_guest_enabled")  # the free tier is opt-in in this fork (nous.guest: false)
 def test_first_connector_action_in_a_test_home_mints_no_portal_guest():
     from hermes_cli import anon_auth
     from tools.connectors.gateway.config import ensure_guest_identity

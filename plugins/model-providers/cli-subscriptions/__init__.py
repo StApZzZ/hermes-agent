@@ -53,7 +53,7 @@ def _auth_handler(name: str, engine: str):
         if engine == "gemini":
             print(_GEMINI_HELP)
         command = resolve_external_process_provider_credentials(name)["command"]
-        # Inherit the terminal: device codes and browser prompts belong to the user, not Hermes logs.
+        # Inherit the terminal: device codes and browser prompts belong to the user, not Hermes logs.  noqa: subprocess-stdin
         code = subprocess.call([command, *native], env=env)  # health: allow HX006 -- interactive native login runs until the user finishes it
         if code:
             raise SystemExit(code)

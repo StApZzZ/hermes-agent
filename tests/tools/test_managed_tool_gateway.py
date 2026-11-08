@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone, UTC
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import sys
+
+import pytest
 from unittest.mock import patch
 
 from tools import managed_gateway_auth
@@ -210,6 +212,7 @@ def test_default_bearer_gate_accepts_both_deployed_hosts_only():
             assert not managed_gateway_auth.is_managed_nous_gateway_url(untrusted)
 
 
+@pytest.mark.usefixtures("nous_guest_enabled")  # an anonymous (free-tier) identity; opt-in in this fork
 def test_read_nous_provider_state_falls_back_to_global_root_for_share_auth_profiles(tmp_path, monkeypatch):
     # A profile created with ``share_auth`` has no auth.json of its own; it signs in with the
     # root identity. The connector gate must see that identity, or manage_connections vanishes

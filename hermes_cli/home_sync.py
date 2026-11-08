@@ -58,7 +58,8 @@ class SshPeer:
     def call(self, request: dict) -> dict:
         from hermes_cli.subcommands.remote import _ssh_argv
         proc = subprocess.run(_ssh_argv(self.host, _REMOTE_AGENT, batch=True), input=json.dumps(request),
-                              capture_output=True, text=True, timeout=_SSH_TIMEOUT_SECONDS, check=False)
+                              capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              timeout=_SSH_TIMEOUT_SECONDS, check=False)
         return parse_reply(proc.stdout, proc.stderr, proc.returncode, self.host)
 
 

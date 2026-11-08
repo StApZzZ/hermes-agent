@@ -84,5 +84,6 @@ def state() -> str:
         return "no systemd"
     if not _unit_paths()[1].exists():
         return "not installed"
-    result = _run_systemctl(["is-active", f"{UNIT}.timer"], capture_output=True, text=True, check=False)
+    result = _run_systemctl(["is-active", f"{UNIT}.timer"], capture_output=True, text=True, encoding="utf-8",
+                            errors="replace", check=False)
     return (result.stdout or "").strip() or "unknown"
