@@ -199,3 +199,19 @@ def test_async_auxiliary_calls_can_await_the_cli_client(client_factory, stream):
             else result.choices[0].message.content)
     assert text == "Привет from claude"
     assert async_client.base_url == "cli://claude"
+
+
+def test_claude_images_sit_right_after_their_markers():
+    """An earlier image keeps its place when the transcript grows: the cached prefix holds."""
+    from agent.cli_subscription_images import claude_stream_input, detach_images
+
+    def blocks(messages):
+        detached, images = detach_images(messages)
+        _system, conversation = request_parts(detached, None, None, None)
+        return json.loads(claude_stream_input(conversation, images))["message"]["content"]
+
+    first = blocks([_image_message("one")])
+    later = blocks([_image_message("one"), {"role":"assistant","content":"ok"}, _image_message("two")])
+    assert [b["type"] for b in later] == ["text", "image", "text", "image", "text"]
+    assert later[0]["text"].endswith("[attached image #1]") and later[2]["text"].endswith("[attached image #2]")
+    assert later[:2] == first[:2]

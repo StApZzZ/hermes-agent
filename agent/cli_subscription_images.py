@@ -64,19 +64,28 @@ def detach_images(messages: list[dict]) -> tuple[list[dict], list[CLIImage]]:
         for block in content:
             if isinstance(block, dict) and block.get("type") in _IMAGE_BLOCK_TYPES:
                 images.append(_decode(block))
-                block = {"type": "text", "text": f"[attached image #{len(images)}]"}
+                block = {"type": "text", "text": _marker(len(images))}
             blocks.append(block)
         out.append({**message, "content": blocks})
     return out, images
 
 
+def _marker(index: int) -> str:
+    return f"[attached image #{index}]"
+
+
 def claude_stream_input(conversation: str, images: list[CLIImage]) -> str:
-    """One stream-json user message: the transcript text, then the images in marker order."""
-    content = [{"type": "text", "text": conversation}] + [
-        {"type": "image", "source": {"type": "base64", "media_type": image.mime,
-                                     "data": base64.b64encode(image.data).decode("ascii")}}
-        for image in images
-    ]
+    """One stream-json user message: the transcript text with each image right after its marker.
+    Earlier images keep their place when the conversation grows, so the cached prefix holds."""
+    content: list[dict] = []
+    rest = conversation
+    for index, image in enumerate(images, start=1):
+        head, marker, rest = rest.partition(_marker(index))
+        content.append({"type": "text", "text": head + marker})
+        content.append({"type": "image", "source": {"type": "base64", "media_type": image.mime,
+                                                    "data": base64.b64encode(image.data).decode("ascii")}})
+    if rest:
+        content.append({"type": "text", "text": rest})
     return json.dumps({"type": "user", "message": {"role": "user", "content": content}}, ensure_ascii=False) + "\n"
 
 
