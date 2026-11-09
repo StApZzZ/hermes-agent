@@ -151,3 +151,65 @@ async def test_telegram_keeps_a_picker_opened_by_a_picker_choice():
     await adapter._handle_choice_picker_callback(SimpleNamespace(answer=AsyncMock()), "cp:0", "67890")
 
     assert adapter._choice_picker_state["67890"] is nested
+
+
+class _SentMessages:
+    """The network edge of the Telegram adapter: what would reach the Bot API."""
+
+    def __init__(self):
+        self.messages = []
+
+    async def __call__(self, chat_id, text, *, reply_markup=None, **_kw):
+        self.messages.append((text, reply_markup))
+        return SimpleNamespace(message_id=len(self.messages))
+
+    def buttons(self, index=-1):
+        markup = self.messages[index][1]
+        return [(b.text, b.callback_data) for row in markup.inline_keyboard for b in row]
+
+
+def _tap(adapter, data):
+    query = SimpleNamespace(data=data, message=SimpleNamespace(chat_id=67890), from_user=SimpleNamespace(id=12345),
+                            answer=AsyncMock(), edit_message_text=AsyncMock())
+    return adapter._handle_callback_query(SimpleNamespace(callback_query=query), None), query
+
+
+@pytest.mark.asyncio
+async def test_settings_end_to_end_through_dispatch_and_telegram_buttons(home, monkeypatch):
+    """/settings typed in Telegram → gateway dispatch → inline menu → tap Images → tap Native → saved."""
+    from tests.gateway.test_slash_access_dispatch import _make_runner
+
+    import plugins.platforms.telegram.adapter as tg
+
+    # Bot API keyboard types as plain records (the test env's telegram package is a mock).
+    monkeypatch.setattr(tg, "InlineKeyboardButton", lambda text, callback_data=None, **_kw: SimpleNamespace(
+        text=text, callback_data=callback_data))
+    monkeypatch.setattr(tg, "InlineKeyboardMarkup", lambda rows: SimpleNamespace(inline_keyboard=rows))
+    adapter = _telegram_adapter()
+    adapter._bot = object()
+    adapter._reply_to_mode = None
+    adapter._accept_update = lambda: None
+    adapter._callback_authorized = AsyncMock(return_value=True)
+    sent = _SentMessages()
+    adapter._send_control_message = sent
+    runner = _make_runner(platform=Platform.TELEGRAM)
+    runner.adapters = {Platform.TELEGRAM: adapter}
+    monkeypatch.setattr(runner, "_delivery_adapter_for", lambda source: adapter, raising=False)
+
+    source = SessionSource(platform=Platform.TELEGRAM, user_id="12345", chat_id="67890", user_name="tester",
+                           chat_type="dm")
+    assert await runner._handle_message(MessageEvent(text="/settings", source=source, message_id="1")) is None
+    menu = sent.buttons()
+    assert [data for _label, data in menu] == [f"cp:{i}" for i in range(8)]
+    assert any("Images" in label for label, _data in menu)
+
+    tap, query = _tap(adapter, "cp:3")  # Images
+    await tap
+    # The menu message now names the opened item.
+    assert adapter._edit_result_text.await_args.args == (query, "⚙️ Settings → 🖼 Images")
+    modes = sent.buttons()
+    assert [label for label, _data in modes] == ["✓ Auto", "Native", "Description"]
+
+    tap, _query = _tap(adapter, "cp:1")  # Native
+    await tap
+    assert _saved_mode(home) == ("native", "native")
