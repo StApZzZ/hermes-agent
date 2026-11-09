@@ -97,6 +97,7 @@
   "/sessions": null,
   "/set-home": "terminal",
   "/sethome": "terminal",
+  "/settings": "hidden",
   "/skills": null,
   "/skin": null,
   "/snap": "terminal",

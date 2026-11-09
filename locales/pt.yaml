@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Trocar de espaço num chat exige um gateway multiplexado (gateway.multiplex_profiles: true)."
     saved_next_session: "Salvo: a próxima sessão do hermes começa no espaço {space} (agente {agent}). Esta sessão continua igual."
     saved_default: "Salvo: a próxima sessão do hermes começa com o perfil padrão."
+  settings:
+    title: "⚙️ Definições — escolha o que mudar:"
+    item_model: "🧠 Modelo"
+    item_reasoning: "💭 Raciocínio"
+    item_fast: "⚡ Modo rápido"
+    item_images: "🖼 Imagens"
+    item_voice: "🔊 Voz"
+    item_personality: "🎭 Personalidade"
+    item_approvals: "✅ Aprovações"
+    item_status: "📊 Estado"
+    opened: "⚙️ Definições → {item}"
+    images_title: "🖼 Reconhecimento de imagens — agora: {mode}\nAuto: o modelo vê a imagem se puder; senão recebe uma descrição.\nDireto: enviar sempre a própria imagem ao modelo.\nDescrição: descrevê-la sempre primeiro com vision_analyze."
+    images_status: "🖼 Reconhecimento de imagens: {mode}. Mudar: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Direto"
+    mode_text: "Descrição"
+    images_saved: "🖼 Reconhecimento de imagens: {mode}. Aplica-se à próxima imagem."
+    images_save_failed: "Não foi possível guardar o modo de reconhecimento: config.yaml não é gravável."
+    images_unknown: "Modo desconhecido: {arg}. Use auto, native ou text."
+    text_menu: "⚙️ Definições\n/model — modelo e fornecedor\n/reasoning — esforço de raciocínio\n/fast — modo rápido\n/settings images auto|native|text — reconhecimento de imagens (agora: {mode})\n/voice — respostas de voz\n/personality — personalidade\n/approvals — aprovação de comandos\n/status — estado da sessão"
   reasoning:
     level_default: "medium (predefinido)"
     level_disabled: "none (desativado)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Mostrar o nome do perfil ativo e o diretório home"
   space:
     description: "Listar espaços (trabalho, pessoal, projetos) ou trocar para um"
+  settings:
+    description: "Menu de definições: modelo, raciocínio, imagens, voz"
   sessions:
     description: "Navegar e retomar sessões anteriores"
   config:

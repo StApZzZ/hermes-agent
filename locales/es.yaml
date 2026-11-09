@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Cambiar de espacio en un chat requiere un gateway multiplexado (gateway.multiplex_profiles: true)."
     saved_next_session: "Guardado: la próxima sesión de hermes empieza en el espacio {space} (agente {agent}). Esta sesión sigue igual."
     saved_default: "Guardado: la próxima sesión de hermes empieza con el perfil predeterminado."
+  settings:
+    title: "⚙️ Ajustes — elige qué cambiar:"
+    item_model: "🧠 Modelo"
+    item_reasoning: "💭 Razonamiento"
+    item_fast: "⚡ Modo rápido"
+    item_images: "🖼 Imágenes"
+    item_voice: "🔊 Voz"
+    item_personality: "🎭 Personalidad"
+    item_approvals: "✅ Aprobaciones"
+    item_status: "📊 Estado"
+    opened: "⚙️ Ajustes → {item}"
+    images_title: "🖼 Reconocimiento de imágenes — ahora: {mode}\nAuto: el modelo ve la imagen si puede; si no, recibe una descripción.\nDirecto: enviar siempre la imagen al modelo.\nDescripción: describirla siempre primero con vision_analyze."
+    images_status: "🖼 Reconocimiento de imágenes: {mode}. Cambiar: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Directo"
+    mode_text: "Descripción"
+    images_saved: "🖼 Reconocimiento de imágenes: {mode}. Se aplica a la próxima imagen."
+    images_save_failed: "No se pudo guardar el modo de reconocimiento: config.yaml no se puede escribir."
+    images_unknown: "Modo desconocido: {arg}. Usa auto, native o text."
+    text_menu: "⚙️ Ajustes\n/model — modelo y proveedor\n/reasoning — esfuerzo de razonamiento\n/fast — modo rápido\n/settings images auto|native|text — reconocimiento de imágenes (ahora: {mode})\n/voice — respuestas de voz\n/personality — personalidad\n/approvals — aprobación de comandos\n/status — estado de la sesión"
   reasoning:
     level_default: "medium (predeterminado)"
     level_disabled: "none (deshabilitado)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Mostrar el nombre del perfil activo y su directorio home"
   space:
     description: "Listar espacios (trabajo, personal, proyectos) o cambiar a uno"
+  settings:
+    description: "Menú de ajustes: modelo, razonamiento, imágenes, voz"
   sessions:
     description: "Explorar y reanudar sesiones anteriores"
   config:

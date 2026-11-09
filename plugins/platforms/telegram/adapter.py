@@ -4383,6 +4383,7 @@ class TelegramAdapter(TelegramHeldInboundMixin, TelegramTopicRoutingMixin, BaseP
         if not callback:
             await query.answer(text=_toast("platform.telegram.picker.expired"))
             return
+        self._choice_picker_state.pop(chat_id, None)  # before the callback: it may open the next picker (/settings)
         try:
             result_text = await callback(chat_id, str(choice.get("value") or ""))
         except Exception as exc:
@@ -4390,7 +4391,6 @@ class TelegramAdapter(TelegramHeldInboundMixin, TelegramTopicRoutingMixin, BaseP
             result_text = t("platform.telegram.picker.apply_error", error=str(exc))
         await self._edit_result_text(query, result_text)
         await query.answer()
-        self._choice_picker_state.pop(chat_id, None)
 
     _MODEL_PAGE_SIZE = 8
 

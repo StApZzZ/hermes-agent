@@ -297,6 +297,26 @@ gateway:
     needs_multiplex: "Switching spaces in a chat needs a multiplexed gateway (gateway.multiplex_profiles: true)."
     saved_next_session: "Saved: the next hermes session starts in space {space} (agent {agent}). This session stays as it is."
     saved_default: "Saved: the next hermes session starts with the default profile."
+  settings:
+    title: "⚙️ Settings — pick what to change:"
+    item_model: "🧠 Model"
+    item_reasoning: "💭 Reasoning"
+    item_fast: "⚡ Fast mode"
+    item_images: "🖼 Images"
+    item_voice: "🔊 Voice"
+    item_personality: "🎭 Personality"
+    item_approvals: "✅ Approvals"
+    item_status: "📊 Status"
+    opened: "⚙️ Settings → {item}"
+    images_title: "🖼 Image recognition — now: {mode}\nAuto: the model sees the picture if it can, otherwise it gets a description.\nNative: always send the picture itself to the model.\nDescription: always describe it first with vision_analyze."
+    images_status: "🖼 Image recognition: {mode}. Change it: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Native"
+    mode_text: "Description"
+    images_saved: "🖼 Image recognition: {mode}. It applies to the next picture you send."
+    images_save_failed: "Could not save the image recognition mode: config.yaml is not writable."
+    images_unknown: "Unknown mode: {arg}. Use auto, native or text."
+    text_menu: "⚙️ Settings\n/model — model and provider\n/reasoning — reasoning effort\n/fast — fast mode\n/settings images auto|native|text — image recognition (now: {mode})\n/voice — voice replies\n/personality — personality\n/approvals — command approvals\n/status — session status"
   reasoning:
     level_default: "medium (default)"
     level_disabled: "none (disabled)"
@@ -1680,6 +1700,8 @@ slash:
     description: "Show active profile name and home directory"
   space:
     description: "List spaces (work, personal, projects) or switch to one"
+  settings:
+    description: "Settings menu: model, reasoning, image recognition, voice"
   sessions:
     description: "Browse and resume previous sessions"
   config:

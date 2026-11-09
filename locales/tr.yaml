@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Sohbette alan değiştirmek çoklanmış bir ağ geçidi gerektirir (gateway.multiplex_profiles: true)."
     saved_next_session: "Kaydedildi: sonraki hermes oturumu {space} alanında başlar (ajan {agent}). Bu oturum olduğu gibi kalır."
     saved_default: "Kaydedildi: sonraki hermes oturumu varsayılan profille başlar."
+  settings:
+    title: "⚙️ Ayarlar — neyi değiştirmek istersin?"
+    item_model: "🧠 Model"
+    item_reasoning: "💭 Akıl yürütme"
+    item_fast: "⚡ Hızlı mod"
+    item_images: "🖼 Görseller"
+    item_voice: "🔊 Ses"
+    item_personality: "🎭 Kişilik"
+    item_approvals: "✅ Onaylar"
+    item_status: "📊 Durum"
+    opened: "⚙️ Ayarlar → {item}"
+    images_title: "🖼 Görsel tanıma — şu an: {mode}\nOtomatik: model görebiliyorsa resmi görür, göremiyorsa açıklamasını alır.\nDoğrudan: resmi her zaman modele gönder.\nAçıklama: resmi her zaman önce vision_analyze ile açıkla."
+    images_status: "🖼 Görsel tanıma: {mode}. Değiştir: /settings images auto|native|text"
+    mode_auto: "Otomatik"
+    mode_native: "Doğrudan"
+    mode_text: "Açıklama"
+    images_saved: "🖼 Görsel tanıma: {mode}. Bir sonraki resimden itibaren geçerli."
+    images_save_failed: "Görsel tanıma modu kaydedilemedi: config.yaml yazılabilir değil."
+    images_unknown: "Bilinmeyen mod: {arg}. auto, native veya text kullanın."
+    text_menu: "⚙️ Ayarlar\n/model — model ve sağlayıcı\n/reasoning — akıl yürütme düzeyi\n/fast — hızlı mod\n/settings images auto|native|text — görsel tanıma (şu an: {mode})\n/voice — sesli yanıtlar\n/personality — kişilik\n/approvals — komut onayları\n/status — oturum durumu"
   reasoning:
     level_default: "medium (varsayılan)"
     level_disabled: "none (devre dışı)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Aktif profil adını ve ana dizini göster"
   space:
     description: "Alanları listele (iş, kişisel, projeler) veya birine geç"
+  settings:
+    description: "Ayarlar menüsü: model, akıl yürütme, görsel tanıma, ses"
   sessions:
     description: "Önceki oturumlara göz at ve devam et"
   config:

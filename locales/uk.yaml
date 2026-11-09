@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Для перемикання просторів у чаті потрібен мультиплексний шлюз (gateway.multiplex_profiles: true)."
     saved_next_session: "Збережено: наступна сесія hermes почнеться в просторі {space} (агент {agent}). Поточна сесія не змінюється."
     saved_default: "Збережено: наступна сесія hermes почнеться з профілем за замовчуванням."
+  settings:
+    title: "⚙️ Налаштування — оберіть, що змінити:"
+    item_model: "🧠 Модель"
+    item_reasoning: "💭 Міркування"
+    item_fast: "⚡ Швидкий режим"
+    item_images: "🖼 Зображення"
+    item_voice: "🔊 Голос"
+    item_personality: "🎭 Особистість"
+    item_approvals: "✅ Підтвердження"
+    item_status: "📊 Статус"
+    opened: "⚙️ Налаштування → {item}"
+    images_title: "🖼 Розпізнавання зображень — зараз: {mode}\nАвто: модель бачить картинку, якщо вміє, інакше отримує її опис.\nНапряму: завжди надсилати моделі саму картинку.\nОпис: завжди спочатку описувати її через vision_analyze."
+    images_status: "🖼 Розпізнавання зображень: {mode}. Змінити: /settings images auto|native|text"
+    mode_auto: "Авто"
+    mode_native: "Напряму"
+    mode_text: "Опис"
+    images_saved: "🖼 Розпізнавання зображень: {mode}. Діє з наступної картинки."
+    images_save_failed: "Не вдалося зберегти режим розпізнавання: config.yaml недоступний для запису."
+    images_unknown: "Невідомий режим: {arg}. Доступні auto, native і text."
+    text_menu: "⚙️ Налаштування\n/model — модель і провайдер\n/reasoning — глибина міркування\n/fast — швидкий режим\n/settings images auto|native|text — розпізнавання зображень (зараз: {mode})\n/voice — голосові відповіді\n/personality — особистість\n/approvals — підтвердження команд\n/status — стан сеансу"
   reasoning:
     level_default: "medium (за замовчуванням)"
     level_disabled: "none (вимкнено)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Показати назву активного профілю та домашній каталог"
   space:
     description: "Показати простори (робота, особисте, проєкти) або перемкнутися"
+  settings:
+    description: "Меню налаштувань: модель, міркування, розпізнавання зображень, голос"
   sessions:
     description: "Переглянути та відновити попередні сеанси"
   config:

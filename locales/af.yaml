@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Om ruimtes in 'n klets te wissel, is 'n gemultiplekseerde poort nodig (gateway.multiplex_profiles: true)."
     saved_next_session: "Gestoor: die volgende hermes-sessie begin in ruimte {space} (agent {agent}). Hierdie sessie bly soos dit is."
     saved_default: "Gestoor: die volgende hermes-sessie begin met die verstekprofiel."
+  settings:
+    title: "⚙️ Instellings — kies wat om te verander:"
+    item_model: "🧠 Model"
+    item_reasoning: "💭 Redenering"
+    item_fast: "⚡ Vinnige modus"
+    item_images: "🖼 Beelde"
+    item_voice: "🔊 Stem"
+    item_personality: "🎭 Persoonlikheid"
+    item_approvals: "✅ Goedkeurings"
+    item_status: "📊 Status"
+    opened: "⚙️ Instellings → {item}"
+    images_title: "🖼 Beeldherkenning — nou: {mode}\nOuto: die model sien die prent as dit kan, anders kry dit 'n beskrywing.\nDirek: stuur altyd die prent self na die model.\nBeskrywing: beskryf dit altyd eers met vision_analyze."
+    images_status: "🖼 Beeldherkenning: {mode}. Verander: /settings images auto|native|text"
+    mode_auto: "Outo"
+    mode_native: "Direk"
+    mode_text: "Beskrywing"
+    images_saved: "🖼 Beeldherkenning: {mode}. Geld vanaf die volgende prent."
+    images_save_failed: "Kon nie die herkenningsmodus stoor nie: config.yaml is nie skryfbaar nie."
+    images_unknown: "Onbekende modus: {arg}. Gebruik auto, native of text."
+    text_menu: "⚙️ Instellings\n/model — model en verskaffer\n/reasoning — redeneervlak\n/fast — vinnige modus\n/settings images auto|native|text — beeldherkenning (nou: {mode})\n/voice — stemantwoorde\n/personality — persoonlikheid\n/approvals — opdraggoedkeuring\n/status — sessiestatus"
   reasoning:
     level_default: "medium (verstek)"
     level_disabled: "none (gedeaktiveer)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Wys die aktiewe profielnaam en tuisgids"
   space:
     description: "Lys ruimtes (werk, persoonlik, projekte) of wissel na een"
+  settings:
+    description: "Instellingsmenu: model, redenering, beeldherkenning, stem"
   sessions:
     description: "Blaai deur vorige sessies en hervat hulle"
   config:

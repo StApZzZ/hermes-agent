@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Cambiare spazio in una chat richiede un gateway multiplexato (gateway.multiplex_profiles: true)."
     saved_next_session: "Salvato: la prossima sessione hermes parte nello spazio {space} (agente {agent}). Questa sessione resta com'è."
     saved_default: "Salvato: la prossima sessione hermes parte con il profilo predefinito."
+  settings:
+    title: "⚙️ Impostazioni — scegli cosa cambiare:"
+    item_model: "🧠 Modello"
+    item_reasoning: "💭 Ragionamento"
+    item_fast: "⚡ Modalità rapida"
+    item_images: "🖼 Immagini"
+    item_voice: "🔊 Voce"
+    item_personality: "🎭 Personalità"
+    item_approvals: "✅ Approvazioni"
+    item_status: "📊 Stato"
+    opened: "⚙️ Impostazioni → {item}"
+    images_title: "🖼 Riconoscimento immagini — ora: {mode}\nAuto: il modello vede l'immagine se può, altrimenti ne riceve una descrizione.\nDiretto: invia sempre l'immagine al modello.\nDescrizione: descrivila sempre prima con vision_analyze."
+    images_status: "🖼 Riconoscimento immagini: {mode}. Cambia: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Diretto"
+    mode_text: "Descrizione"
+    images_saved: "🖼 Riconoscimento immagini: {mode}. Vale dalla prossima immagine."
+    images_save_failed: "Impossibile salvare la modalità di riconoscimento: config.yaml non è scrivibile."
+    images_unknown: "Modalità sconosciuta: {arg}. Usa auto, native o text."
+    text_menu: "⚙️ Impostazioni\n/model — modello e provider\n/reasoning — livello di ragionamento\n/fast — modalità rapida\n/settings images auto|native|text — riconoscimento immagini (ora: {mode})\n/voice — risposte vocali\n/personality — personalità\n/approvals — approvazione dei comandi\n/status — stato della sessione"
   reasoning:
     level_default: "medio (predefinito)"
     level_disabled: "nessuno (disattivato)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Mostra il nome del profilo attivo e la sua directory home"
   space:
     description: "Elenca gli spazi (lavoro, personale, progetti) o passa a uno"
+  settings:
+    description: "Menu impostazioni: modello, ragionamento, immagini, voce"
   sessions:
     description: "Sfoglia e riprendi le sessioni precedenti"
   config:

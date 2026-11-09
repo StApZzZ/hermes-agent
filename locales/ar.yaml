@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "يتطلب تبديل المساحات في المحادثة بوابة متعددة الملفات (gateway.multiplex_profiles: true)."
     saved_next_session: "تم الحفظ: ستبدأ جلسة hermes التالية في المساحة {space} (الوكيل {agent}). تبقى هذه الجلسة كما هي."
     saved_default: "تم الحفظ: ستبدأ جلسة hermes التالية بالملف الشخصي الافتراضي."
+  settings:
+    title: "⚙️ الإعدادات — اختر ما تريد تغييره:"
+    item_model: "🧠 النموذج"
+    item_reasoning: "💭 الاستدلال"
+    item_fast: "⚡ الوضع السريع"
+    item_images: "🖼 الصور"
+    item_voice: "🔊 الصوت"
+    item_personality: "🎭 الشخصية"
+    item_approvals: "✅ الموافقات"
+    item_status: "📊 الحالة"
+    opened: "⚙️ الإعدادات ← {item}"
+    images_title: "🖼 التعرّف على الصور — الآن: {mode}\nتلقائي: يرى النموذج الصورة إن استطاع، وإلا يتلقى وصفًا لها.\nمباشر: أرسل الصورة نفسها إلى النموذج دائمًا.\nوصف: صِف الصورة أولًا دائمًا باستخدام vision_analyze."
+    images_status: "🖼 التعرّف على الصور: {mode}. للتغيير: /settings images auto|native|text"
+    mode_auto: "تلقائي"
+    mode_native: "مباشر"
+    mode_text: "وصف"
+    images_saved: "🖼 التعرّف على الصور: {mode}. يسري من الصورة التالية."
+    images_save_failed: "تعذّر حفظ وضع التعرّف: لا يمكن الكتابة في config.yaml."
+    images_unknown: "وضع غير معروف: {arg}. استخدم auto أو native أو text."
+    text_menu: "⚙️ الإعدادات\n/model — النموذج والمزوّد\n/reasoning — مستوى الاستدلال\n/fast — الوضع السريع\n/settings images auto|native|text — التعرّف على الصور (الآن: {mode})\n/voice — الردود الصوتية\n/personality — الشخصية\n/approvals — الموافقة على الأوامر\n/status — حالة الجلسة"
   reasoning:
     level_default: "medium (افتراضي)"
     level_disabled: "none (مُعطّل)"
@@ -1609,6 +1629,8 @@ slash:
     description: "عرض اسم الملف التعريفي النشط ومجلده الرئيسي"
   space:
     description: "عرض المساحات (العمل، الشخصي، المشاريع) أو التبديل إلى إحداها"
+  settings:
+    description: "قائمة الإعدادات: النموذج، الاستدلال، الصور، الصوت"
   sessions:
     description: "استعراض الجلسات السابقة واستئنافها"
   config:

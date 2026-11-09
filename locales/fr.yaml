@@ -321,6 +321,26 @@ gateway:
     needs_multiplex: "Changer d'espace dans un chat nécessite une passerelle multiplexée (gateway.multiplex_profiles: true)."
     saved_next_session: "Enregistré : la prochaine session hermes démarre dans l'espace {space} (agent {agent}). Cette session reste inchangée."
     saved_default: "Enregistré : la prochaine session hermes démarre avec le profil par défaut."
+  settings:
+    title: "⚙️ Réglages — que voulez-vous changer ?"
+    item_model: "🧠 Modèle"
+    item_reasoning: "💭 Raisonnement"
+    item_fast: "⚡ Mode rapide"
+    item_images: "🖼 Images"
+    item_voice: "🔊 Voix"
+    item_personality: "🎭 Personnalité"
+    item_approvals: "✅ Approbations"
+    item_status: "📊 État"
+    opened: "⚙️ Réglages → {item}"
+    images_title: "🖼 Reconnaissance d'images — actuellement : {mode}\nAuto : le modèle voit l'image s'il le peut, sinon il en reçoit une description.\nDirect : toujours envoyer l'image elle-même au modèle.\nDescription : toujours la décrire d'abord avec vision_analyze."
+    images_status: "🖼 Reconnaissance d'images : {mode}. Changer : /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Direct"
+    mode_text: "Description"
+    images_saved: "🖼 Reconnaissance d'images : {mode}. S'applique à la prochaine image."
+    images_save_failed: "Impossible d'enregistrer le mode de reconnaissance : config.yaml n'est pas modifiable."
+    images_unknown: "Mode inconnu : {arg}. Utilisez auto, native ou text."
+    text_menu: "⚙️ Réglages\n/model — modèle et fournisseur\n/reasoning — effort de raisonnement\n/fast — mode rapide\n/settings images auto|native|text — reconnaissance d'images (actuellement : {mode})\n/voice — réponses vocales\n/personality — personnalité\n/approvals — approbation des commandes\n/status — état de la session"
   reasoning:
     level_default: "medium (par défaut)"
     level_disabled: "none (désactivé)"
@@ -1861,6 +1881,8 @@ slash:
     description: "Afficher le nom du profil actif et son répertoire principal"
   space:
     description: "Lister les espaces (travail, personnel, projets) ou en changer"
+  settings:
+    description: "Menu des réglages : modèle, raisonnement, images, voix"
   sessions:
     description: "Parcourir et reprendre les sessions précédentes"
   config:

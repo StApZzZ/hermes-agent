@@ -217,6 +217,14 @@ This is the knob to reach for when a backend accepts text but rejects native ima
 
 Which auxiliary model handles the text-description path is configurable under `auxiliary.vision` — see [Auxiliary Models](../configuration.md#auxiliary-models).
 
+In a messaging chat, `/settings` → **Images** (or `/settings images auto|native|text`) changes the mode without editing the file; it applies from the next picture. The dashboard has the same switch on its **Images** page.
+
+### Subscription CLIs (`claude-cli`, `codex-cli`)
+
+With a subscription CLI as the provider, the describer runs through the same signed-in CLI: Claude Code receives the picture as an image block of a stream-json message, Codex as an `--image` file. Nothing is billed to an API key. `gemini-cli` cannot take images (it would need its native file tools, which Hermes denies) and says so; point `auxiliary.vision` at another provider if Gemini CLI is your main one.
+
+For exact text, QR codes and EXIF, the bundled [`image-recognition`](../skills/bundled/media/media-image-recognition.md) skill wraps tesseract, zbarimg and exiftool.
+
 ### `vision_analyze` has the same dual behavior
 
 The `vision_analyze` tool itself follows the same routing. When the active main model is vision-capable **and** its provider supports image content inside tool results (currently the Anthropic, OpenAI, Azure-OpenAI, and Gemini 3.x stacks), `vision_analyze` short-circuits the auxiliary describer and returns the raw image pixels as a multimodal tool-result envelope. The main model sees the image natively on its next turn — no aux call, no text-summary information loss, no extra latency. One exception: an image that is already attached natively to the current user message is not re-embedded — `vision_analyze` on that same path returns a short text result saying the image is already in context (pass a `region` to zoom into part of it, which does embed the crop).

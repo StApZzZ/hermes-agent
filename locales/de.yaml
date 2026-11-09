@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Bereichswechsel im Chat braucht ein Multiplex-Gateway (gateway.multiplex_profiles: true)."
     saved_next_session: "Gespeichert: die nächste hermes-Sitzung startet im Bereich {space} (Agent {agent}). Diese Sitzung bleibt unverändert."
     saved_default: "Gespeichert: die nächste hermes-Sitzung startet mit dem Standardprofil."
+  settings:
+    title: "⚙️ Einstellungen — was möchtest du ändern?"
+    item_model: "🧠 Modell"
+    item_reasoning: "💭 Denken"
+    item_fast: "⚡ Schnellmodus"
+    item_images: "🖼 Bilder"
+    item_voice: "🔊 Stimme"
+    item_personality: "🎭 Persönlichkeit"
+    item_approvals: "✅ Freigaben"
+    item_status: "📊 Status"
+    opened: "⚙️ Einstellungen → {item}"
+    images_title: "🖼 Bilderkennung — aktuell: {mode}\nAuto: Das Modell sieht das Bild, wenn es das kann, sonst eine Beschreibung.\nDirekt: Das Bild immer selbst an das Modell senden.\nBeschreibung: Das Bild immer zuerst mit vision_analyze beschreiben."
+    images_status: "🖼 Bilderkennung: {mode}. Ändern: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Direkt"
+    mode_text: "Beschreibung"
+    images_saved: "🖼 Bilderkennung: {mode}. Gilt ab dem nächsten Bild."
+    images_save_failed: "Der Bilderkennungsmodus konnte nicht gespeichert werden: config.yaml ist nicht beschreibbar."
+    images_unknown: "Unbekannter Modus: {arg}. Verfügbar: auto, native, text."
+    text_menu: "⚙️ Einstellungen\n/model — Modell und Anbieter\n/reasoning — Denkaufwand\n/fast — Schnellmodus\n/settings images auto|native|text — Bilderkennung (aktuell: {mode})\n/voice — Sprachantworten\n/personality — Persönlichkeit\n/approvals — Befehlsfreigaben\n/status — Sitzungsstatus"
   reasoning:
     level_default: "medium (Standard)"
     level_disabled: "none (deaktiviert)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Name des aktiven Profils und Stammverzeichnis anzeigen"
   space:
     description: "Bereiche (Arbeit, Privat, Projekte) anzeigen oder wechseln"
+  settings:
+    description: "Einstellungsmenü: Modell, Denken, Bilderkennung, Stimme"
   sessions:
     description: "Frühere Sitzungen durchsuchen und fortsetzen"
   config:

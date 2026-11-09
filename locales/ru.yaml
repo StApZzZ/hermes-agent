@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Для переключения пространств в чате нужен мультиплексный шлюз (gateway.multiplex_profiles: true)."
     saved_next_session: "Сохранено: следующая сессия hermes начнётся в пространстве {space} (агент {agent}). Текущая сессия не меняется."
     saved_default: "Сохранено: следующая сессия hermes начнётся с профилем по умолчанию."
+  settings:
+    title: "⚙️ Настройки — выберите, что изменить:"
+    item_model: "🧠 Модель"
+    item_reasoning: "💭 Рассуждение"
+    item_fast: "⚡ Быстрый режим"
+    item_images: "🖼 Изображения"
+    item_voice: "🔊 Голос"
+    item_personality: "🎭 Личность"
+    item_approvals: "✅ Подтверждения"
+    item_status: "📊 Статус"
+    opened: "⚙️ Настройки → {item}"
+    images_title: "🖼 Распознавание изображений — сейчас: {mode}\nАвто: модель видит картинку, если умеет, иначе получает её описание.\nНапрямую: всегда отправлять модели саму картинку.\nОписание: всегда сначала описывать её через vision_analyze."
+    images_status: "🖼 Распознавание изображений: {mode}. Изменить: /settings images auto|native|text"
+    mode_auto: "Авто"
+    mode_native: "Напрямую"
+    mode_text: "Описание"
+    images_saved: "🖼 Распознавание изображений: {mode}. Действует со следующей картинки."
+    images_save_failed: "Не удалось сохранить режим распознавания: config.yaml недоступен для записи."
+    images_unknown: "Неизвестный режим: {arg}. Доступны auto, native и text."
+    text_menu: "⚙️ Настройки\n/model — модель и провайдер\n/reasoning — глубина рассуждения\n/fast — быстрый режим\n/settings images auto|native|text — распознавание изображений (сейчас: {mode})\n/voice — голосовые ответы\n/personality — личность\n/approvals — подтверждение команд\n/status — состояние сеанса"
   reasoning:
     level_default: "medium (по умолчанию)"
     level_disabled: "none (отключено)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Показать имя активного профиля и его домашний каталог"
   space:
     description: "Показать пространства (работа, личное, проекты) или переключиться"
+  settings:
+    description: "Меню настроек: модель, рассуждение, распознавание изображений, голос"
   sessions:
     description: "Просмотреть и возобновить предыдущие сеансы"
   config:

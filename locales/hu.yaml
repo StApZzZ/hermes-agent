@@ -296,6 +296,26 @@ gateway:
     needs_multiplex: "A terek csevegésben való váltásához multiplexelt átjáró kell (gateway.multiplex_profiles: true)."
     saved_next_session: "Mentve: a következő hermes munkamenet a(z) {space} térben indul (ügynök: {agent}). Ez a munkamenet változatlan marad."
     saved_default: "Mentve: a következő hermes munkamenet az alapértelmezett profillal indul."
+  settings:
+    title: "⚙️ Beállítások — mit szeretnél módosítani?"
+    item_model: "🧠 Modell"
+    item_reasoning: "💭 Gondolkodás"
+    item_fast: "⚡ Gyors mód"
+    item_images: "🖼 Képek"
+    item_voice: "🔊 Hang"
+    item_personality: "🎭 Személyiség"
+    item_approvals: "✅ Jóváhagyások"
+    item_status: "📊 Állapot"
+    opened: "⚙️ Beállítások → {item}"
+    images_title: "🖼 Képfelismerés — most: {mode}\nAuto: a modell látja a képet, ha tudja, különben leírást kap róla.\nKözvetlen: mindig magát a képet küldi a modellnek.\nLeírás: mindig előbb leírja a vision_analyze segítségével."
+    images_status: "🖼 Képfelismerés: {mode}. Módosítás: /settings images auto|native|text"
+    mode_auto: "Auto"
+    mode_native: "Közvetlen"
+    mode_text: "Leírás"
+    images_saved: "🖼 Képfelismerés: {mode}. A következő képtől érvényes."
+    images_save_failed: "A felismerési módot nem sikerült menteni: a config.yaml nem írható."
+    images_unknown: "Ismeretlen mód: {arg}. Használható: auto, native, text."
+    text_menu: "⚙️ Beállítások\n/model — modell és szolgáltató\n/reasoning — gondolkodási szint\n/fast — gyors mód\n/settings images auto|native|text — képfelismerés (most: {mode})\n/voice — hangos válaszok\n/personality — személyiség\n/approvals — parancsjóváhagyás\n/status — munkamenet állapota"
   reasoning:
     level_default: "medium (alapértelmezett)"
     level_disabled: "none (kikapcsolva)"
@@ -1626,6 +1646,8 @@ slash:
     description: "Az aktív profil nevének és home könyvtárának megjelenítése"
   space:
     description: "Terek listázása (munka, személyes, projektek) vagy váltás"
+  settings:
+    description: "Beállítások menü: modell, gondolkodás, képfelismerés, hang"
   sessions:
     description: "Korábbi munkamenetek böngészése és folytatása"
   config:

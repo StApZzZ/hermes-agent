@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "Teastaíonn geata ilphléacsáilte chun spásanna a athrú i gcomhrá (gateway.multiplex_profiles: true)."
     saved_next_session: "Sábháilte: tosóidh an chéad seisiún hermes eile i spás {space} (gníomhaire {agent}). Fanann an seisiún seo mar atá."
     saved_default: "Sábháilte: tosóidh an chéad seisiún hermes eile leis an bpróifíl réamhshocraithe."
+  settings:
+    title: "⚙️ Socruithe — roghnaigh cad atá le hathrú:"
+    item_model: "🧠 Samhail"
+    item_reasoning: "💭 Réasúnaíocht"
+    item_fast: "⚡ Mód tapa"
+    item_images: "🖼 Íomhánna"
+    item_voice: "🔊 Guth"
+    item_personality: "🎭 Pearsantacht"
+    item_approvals: "✅ Ceaduithe"
+    item_status: "📊 Stádas"
+    opened: "⚙️ Socruithe → {item}"
+    images_title: "🖼 Aithint íomhánna — anois: {mode}\nUathoibríoch: feiceann an tsamhail an pictiúr más féidir léi, nó faigheann sí cur síos air.\nDíreach: seol an pictiúr féin chuig an tsamhail i gcónaí.\nCur síos: déan cur síos air ar dtús le vision_analyze i gcónaí."
+    images_status: "🖼 Aithint íomhánna: {mode}. Athraigh: /settings images auto|native|text"
+    mode_auto: "Uathoibríoch"
+    mode_native: "Díreach"
+    mode_text: "Cur síos"
+    images_saved: "🖼 Aithint íomhánna: {mode}. Bainfidh sé leis an gcéad phictiúr eile."
+    images_save_failed: "Níorbh fhéidir an mód aitheantais a shábháil: ní féidir scríobh chuig config.yaml."
+    images_unknown: "Mód anaithnid: {arg}. Úsáid auto, native nó text."
+    text_menu: "⚙️ Socruithe\n/model — samhail agus soláthraí\n/reasoning — leibhéal réasúnaíochta\n/fast — mód tapa\n/settings images auto|native|text — aithint íomhánna (anois: {mode})\n/voice — freagraí gutha\n/personality — pearsantacht\n/approvals — ceadú orduithe\n/status — stádas an tseisiúin"
   reasoning:
     level_default: "medium (réamhshocraithe)"
     level_disabled: "none (díchumasaithe)"
@@ -1609,6 +1629,8 @@ slash:
     description: "Taispeáin ainm na próifíle gníomhaí agus an t-eolaire baile"
   space:
     description: "Liostaigh spásanna (obair, pearsanta, tionscadail) nó athraigh go ceann"
+  settings:
+    description: "Roghchlár socruithe: samhail, réasúnaíocht, íomhánna, guth"
   sessions:
     description: "Brabhsáil agus atosaigh seisiúin roimhe seo"
   config:

@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "在聊天中切换空间需要多路复用网关（gateway.multiplex_profiles: true）。"
     saved_next_session: "已保存：下一个 hermes 会话将在空间 {space}（代理 {agent}）中启动。当前会话保持不变。"
     saved_default: "已保存：下一个 hermes 会话将使用默认配置文件启动。"
+  settings:
+    title: "⚙️ 设置 — 选择要更改的项目："
+    item_model: "🧠 模型"
+    item_reasoning: "💭 推理"
+    item_fast: "⚡ 快速模式"
+    item_images: "🖼 图片"
+    item_voice: "🔊 语音"
+    item_personality: "🎭 个性"
+    item_approvals: "✅ 审批"
+    item_status: "📊 状态"
+    opened: "⚙️ 设置 → {item}"
+    images_title: "🖼 图片识别 — 当前：{mode}\n自动：模型能看图就直接看图，否则收到图片描述。\n直接：总是把图片本身发给模型。\n描述：总是先用 vision_analyze 描述图片。"
+    images_status: "🖼 图片识别：{mode}。更改：/settings images auto|native|text"
+    mode_auto: "自动"
+    mode_native: "直接"
+    mode_text: "描述"
+    images_saved: "🖼 图片识别：{mode}。从下一张图片开始生效。"
+    images_save_failed: "无法保存图片识别模式：config.yaml 不可写。"
+    images_unknown: "未知模式：{arg}。可用 auto、native 或 text。"
+    text_menu: "⚙️ 设置\n/model — 模型和提供商\n/reasoning — 推理强度\n/fast — 快速模式\n/settings images auto|native|text — 图片识别（当前：{mode}）\n/voice — 语音回复\n/personality — 个性\n/approvals — 命令审批\n/status — 会话状态"
   reasoning:
     level_default: "medium（默认）"
     level_disabled: "none（已禁用）"
@@ -1609,6 +1629,8 @@ slash:
     description: "显示当前配置档名称与主目录"
   space:
     description: "列出空间（工作、个人、项目）或切换到其中一个"
+  settings:
+    description: "设置菜单：模型、推理、图片识别、语音"
   sessions:
     description: "浏览并恢复以前的会话"
   config:

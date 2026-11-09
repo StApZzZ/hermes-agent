@@ -293,6 +293,26 @@ gateway:
     needs_multiplex: "在聊天中切換空間需要多工閘道（gateway.multiplex_profiles: true）。"
     saved_next_session: "已儲存：下一個 hermes 工作階段將在空間 {space}（代理 {agent}）中啟動。目前工作階段保持不變。"
     saved_default: "已儲存：下一個 hermes 工作階段將使用預設設定檔啟動。"
+  settings:
+    title: "⚙️ 設定 — 選擇要變更的項目："
+    item_model: "🧠 模型"
+    item_reasoning: "💭 推理"
+    item_fast: "⚡ 快速模式"
+    item_images: "🖼 圖片"
+    item_voice: "🔊 語音"
+    item_personality: "🎭 個性"
+    item_approvals: "✅ 審批"
+    item_status: "📊 狀態"
+    opened: "⚙️ 設定 → {item}"
+    images_title: "🖼 圖片辨識 — 目前：{mode}\n自動：模型能看圖就直接看圖，否則收到圖片描述。\n直接：總是把圖片本身傳給模型。\n描述：總是先用 vision_analyze 描述圖片。"
+    images_status: "🖼 圖片辨識：{mode}。變更：/settings images auto|native|text"
+    mode_auto: "自動"
+    mode_native: "直接"
+    mode_text: "描述"
+    images_saved: "🖼 圖片辨識：{mode}。從下一張圖片開始生效。"
+    images_save_failed: "無法儲存圖片辨識模式：config.yaml 無法寫入。"
+    images_unknown: "未知模式：{arg}。可用 auto、native 或 text。"
+    text_menu: "⚙️ 設定\n/model — 模型與供應商\n/reasoning — 推理強度\n/fast — 快速模式\n/settings images auto|native|text — 圖片辨識（目前：{mode}）\n/voice — 語音回覆\n/personality — 個性\n/approvals — 指令審批\n/status — 工作階段狀態"
   reasoning:
     level_default: "medium（預設）"
     level_disabled: "none（已停用）"
@@ -1609,6 +1629,8 @@ slash:
     description: "顯示目前設定檔名稱與主目錄"
   space:
     description: "列出空間（工作、個人、專案）或切換到其中一個"
+  settings:
+    description: "設定選單：模型、推理、圖片辨識、語音"
   sessions:
     description: "瀏覽並恢復先前的工作階段"
   config:
