@@ -12,7 +12,7 @@ function ActionBody({ action, result, v }: { action: VisionAction; result: Visio
     return (
       <p className="text-sm text-muted-foreground">
         {result.missing}: {v.notInstalled}
-        {command && <code className="ml-2 bg-muted px-2 py-0.5 text-xs">{command}</code>}
+        {command && <code className="ml-2 px-2 py-0.5 text-xs">{command}</code>}
       </p>
     );
   }

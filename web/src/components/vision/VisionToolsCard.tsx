@@ -63,7 +63,7 @@ export function VisionToolsCard() {
                   {v.languages}: {tool.langs.join(", ")}
                 </span>
               )}
-              {command && <code className="w-fit bg-muted px-2 py-1 text-xs">{command}</code>}
+              {command && <code className="block w-fit break-all px-2 py-1 text-xs">{command}</code>}
             </div>
           );
         })}
