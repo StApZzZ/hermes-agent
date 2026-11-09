@@ -60,7 +60,8 @@ def _describer() -> tuple[Optional[dict], Optional[str]]:
 
     try:
         provider, client, model = resolve_vision_provider_client()
-    except Exception as exc:  # a broken provider must not take the page down
+    except Exception as exc:  # health: allow BLE001 -- a broken provider plugin must not take the page down; traceback logged
+        _log.warning("Images page: vision backend resolution failed", exc_info=True)
         return None, str(exc)
     if client is None:
         return None, None
@@ -114,9 +115,10 @@ async def set_vision_settings(body: VisionSettingsUpdate, profile: Optional[str]
 
 
 def _skill_script() -> Path:
+    from hermes_cli._startup_fast import project_root_str
     from hermes_constants import get_bundled_skills_dir
 
-    bundled = get_bundled_skills_dir(Path(__file__).resolve().parents[2] / "skills")  # wrapper env, else checkout
+    bundled = get_bundled_skills_dir(Path(project_root_str()) / "skills")  # wrapper env, else checkout
     return bundled / "media" / "image-recognition" / "scripts" / "image_tools.py"
 
 

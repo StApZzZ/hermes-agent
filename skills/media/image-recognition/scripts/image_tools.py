@@ -88,7 +88,7 @@ def cmd_info(path: Path, _args) -> dict:
             with image_mod.open(path) as im:
                 info.update(format=im.format or info["format"], width=im.width, height=im.height, mode=im.mode,
                             frames=getattr(im, "n_frames", 1))
-        except Exception as exc:  # unreadable or unsupported by this Pillow build
+        except (OSError, ValueError, image_mod.DecompressionBombError) as exc:  # unreadable or unsupported here
             info["pillow_error"] = str(exc)
     return info
 
