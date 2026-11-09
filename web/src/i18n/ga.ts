@@ -79,6 +79,7 @@ export const ga: Translations = {
       plugins: "Plugins",
       sessions: "Seisiúin",
       skills: "Scileanna",
+      images: "Íomhánna",
     },
     modelToolsSheetSubtitle: "agus uirlisí",
     modelToolsSheetTitle: "Samhail",

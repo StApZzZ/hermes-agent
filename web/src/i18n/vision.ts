@@ -1,0 +1,163 @@
+// Strings of the Images page (pages/VisionPage.tsx). A separate module so the large locale files
+// only gain one line each; locales without a translation fall back to English.
+
+export interface VisionStrings {
+  title: string;
+  subtitle: string;
+  modeTitle: string;
+  modeHint: string;
+  modes: Record<"auto" | "native" | "text", { label: string; description: string }>;
+  saved: string;
+  saveFailed: string;
+  mainModel: string;
+  describer: string;
+  noDescriber: string;
+  routeNow: string;
+  routeNative: string;
+  routeText: string;
+  changeDescriber: string;
+  toolsTitle: string;
+  toolsHint: string;
+  installed: string;
+  missing: string;
+  languages: string;
+  refresh: string;
+  toolPurpose: Record<string, string>;
+  tryTitle: string;
+  tryHint: string;
+  dropHere: string;
+  pickFile: string;
+  question: string;
+  questionPlaceholder: string;
+  ocrLanguages: string;
+  actions: Record<"describe" | "ocr" | "codes" | "meta", string>;
+  run: string;
+  running: string;
+  uploadFailed: string;
+  noText: string;
+  noCodes: string;
+  noExif: string;
+  openMap: string;
+  notInstalled: string;
+  chatHint: string;
+}
+
+export const visionEn: VisionStrings = {
+  title: "Image recognition",
+  subtitle: "How Hermes looks at pictures you send in chats, which tools it has, and a place to try them.",
+  modeTitle: "How images reach the model",
+  modeHint: "Applies from the next picture, in every chat. Same switch as /settings → Images in Telegram.",
+  modes: {
+    auto: {
+      label: "Auto",
+      description: "The model sees the picture if it can; otherwise it gets a text description.",
+    },
+    native: {
+      label: "Native",
+      description: "Always send the picture itself to the model. Best quality when the model has vision.",
+    },
+    text: {
+      label: "Description",
+      description: "Always describe the picture first (vision_analyze) and send the text. Works with any model.",
+    },
+  },
+  saved: "Saved",
+  saveFailed: "Could not save",
+  mainModel: "Main model",
+  describer: "Describes images",
+  noDescriber: "No backend can describe images right now. Pick a vision model on the Models page.",
+  routeNow: "A picture sent now goes",
+  routeNative: "straight to the model",
+  routeText: "as a description",
+  changeDescriber: "Change the describing model",
+  toolsTitle: "Recognition tools on the server",
+  toolsHint: "The image-recognition skill uses them for exact text, codes and photo data.",
+  installed: "installed",
+  missing: "missing",
+  languages: "Languages",
+  refresh: "Refresh",
+  toolPurpose: {
+    tesseract: "Text from photos and screenshots (OCR)",
+    zbarimg: "QR codes and barcodes",
+    exiftool: "Camera, time and GPS from photos",
+    claude: "Description through the Claude subscription",
+    codex: "Description through the ChatGPT subscription",
+  },
+  tryTitle: "Try it",
+  tryHint: "Drop, paste or pick a picture, choose what to find, and run.",
+  dropHere: "Drop an image here or paste it (Ctrl+V)",
+  pickFile: "Choose file",
+  question: "Question (optional)",
+  questionPlaceholder: "What is in the picture? What does the chart show?",
+  ocrLanguages: "OCR languages",
+  actions: { describe: "Description", ocr: "Text (OCR)", codes: "QR / barcodes", meta: "Photo data (EXIF)" },
+  run: "Recognise",
+  running: "Recognising…",
+  uploadFailed: "Upload failed",
+  noText: "No text found.",
+  noCodes: "No codes found.",
+  noExif: "No EXIF data (messengers and screenshots usually strip it).",
+  openMap: "Open on the map",
+  notInstalled: "not installed",
+  chatHint: "In chats: send a photo, or ask “read the text on the picture” — the agent uses these tools itself.",
+};
+
+export const visionRu: VisionStrings = {
+  title: "Распознавание изображений",
+  subtitle: "Как Hermes смотрит на картинки из чатов, какие инструменты у него есть, и где их попробовать.",
+  modeTitle: "Как картинки попадают к модели",
+  modeHint: "Действует со следующей картинки во всех чатах. То же, что /settings → Изображения в Telegram.",
+  modes: {
+    auto: {
+      label: "Авто",
+      description: "Модель видит картинку, если умеет; иначе получает текстовое описание.",
+    },
+    native: {
+      label: "Напрямую",
+      description: "Всегда отправлять модели саму картинку. Лучшее качество, если модель видит изображения.",
+    },
+    text: {
+      label: "Описание",
+      description: "Всегда сначала описывать картинку (vision_analyze) и передавать текст. Работает с любой моделью.",
+    },
+  },
+  saved: "Сохранено",
+  saveFailed: "Не удалось сохранить",
+  mainModel: "Основная модель",
+  describer: "Описывает картинки",
+  noDescriber: "Сейчас картинки описывать некому. Выберите модель со зрением на странице «Модели».",
+  routeNow: "Картинка, отправленная сейчас, пойдёт",
+  routeNative: "сразу модели",
+  routeText: "в виде описания",
+  changeDescriber: "Сменить модель для описания",
+  toolsTitle: "Инструменты распознавания на сервере",
+  toolsHint: "Навык image-recognition использует их для точного текста, кодов и данных фото.",
+  installed: "установлен",
+  missing: "нет",
+  languages: "Языки",
+  refresh: "Обновить",
+  toolPurpose: {
+    tesseract: "Текст с фото и скриншотов (OCR)",
+    zbarimg: "QR-коды и штрихкоды",
+    exiftool: "Камера, время и GPS из фото",
+    claude: "Описание через подписку Claude",
+    codex: "Описание через подписку ChatGPT",
+  },
+  tryTitle: "Попробовать",
+  tryHint: "Перетащите, вставьте или выберите картинку, отметьте, что искать, и запустите.",
+  dropHere: "Перетащите картинку сюда или вставьте её (Ctrl+V)",
+  pickFile: "Выбрать файл",
+  question: "Вопрос (необязательно)",
+  questionPlaceholder: "Что на картинке? Что показывает график?",
+  ocrLanguages: "Языки OCR",
+  actions: { describe: "Описание", ocr: "Текст (OCR)", codes: "QR / штрихкоды", meta: "Данные фото (EXIF)" },
+  run: "Распознать",
+  running: "Распознаю…",
+  uploadFailed: "Не удалось загрузить",
+  noText: "Текст не найден.",
+  noCodes: "Коды не найдены.",
+  noExif: "Нет EXIF (мессенджеры и скриншоты обычно его удаляют).",
+  openMap: "Открыть на карте",
+  notInstalled: "не установлен",
+  chatHint: "В чатах: просто пришлите фото или попросите «прочитай текст на картинке» — агент сам воспользуется этими инструментами.",
+};

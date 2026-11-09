@@ -17,7 +17,11 @@ export type Locale =
   | "hu"
   | "ar";
 
+import type { VisionStrings } from "./vision";
+
 export interface Translations {
+  /** Images page; optional — locales without it fall back to English. */
+  vision?: VisionStrings;
   // ── Common ──
   common: {
     save: string;
@@ -105,6 +109,7 @@ export interface Translations {
       plugins: string;
       sessions: string;
       skills: string;
+      images: string;
     };
     modelToolsSheetSubtitle: string;
     modelToolsSheetTitle: string;

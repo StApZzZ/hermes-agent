@@ -79,6 +79,7 @@ export const ar = defineLocale({
       plugins: "المكوِّنات الإضافية",
       sessions: "الجلسات",
       skills: "المهارات",
+      images: "الصور",
     },
     modelToolsSheetSubtitle: "& أدوات",
     modelToolsSheetTitle: "النموذج",

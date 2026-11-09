@@ -1,6 +1,8 @@
 import type { Translations } from "./types";
+import { visionRu } from "./vision";
 
 export const ru: Translations = {
+  vision: visionRu,
   common: {
     save: "Сохранить",
     saving: "Сохранение...",
@@ -79,6 +81,7 @@ export const ru: Translations = {
       plugins: "Плагины",
       sessions: "Сессии",
       skills: "Навыки",
+      images: "Изображения",
     },
     modelToolsSheetSubtitle: "и инструменты",
     modelToolsSheetTitle: "Модель",

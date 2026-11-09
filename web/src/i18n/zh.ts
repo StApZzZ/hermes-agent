@@ -78,6 +78,7 @@ export const zh: Translations = {
       plugins: "插件管理",
       sessions: "会话",
       skills: "技能",
+      images: "图片",
     },
     modelToolsSheetSubtitle: "与工具",
     modelToolsSheetTitle: "模型",

@@ -79,6 +79,7 @@ export const hu: Translations = {
       plugins: "Bővítmények",
       sessions: "Munkamenetek",
       skills: "Készségek",
+      images: "Képek",
     },
     modelToolsSheetSubtitle: "és eszközök",
     modelToolsSheetTitle: "Modell",

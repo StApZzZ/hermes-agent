@@ -79,6 +79,7 @@ export const ko: Translations = {
       plugins: "플러그인",
       sessions: "세션",
       skills: "스킬",
+      images: "이미지",
     },
     modelToolsSheetSubtitle: "및 도구",
     modelToolsSheetTitle: "모델",
