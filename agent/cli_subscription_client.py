@@ -22,6 +22,9 @@ from agent.acp_openai_bridge import (
     extract_tool_calls_from_text,
     render_tool_bridge_sections,
 )
+from agent.cli_subscription_images import (
+    IMAGE_ENGINES, CLIImage, claude_stream_input, detach_images, write_image_files,
+)
 from agent.cli_subscription_process import (
     GEMINI_POLICY, CLIReportedError, cli_argv, completion_usage, decode_result, subscription_env,
     terminate_process, timeout_seconds, validate_gemini_auth,
@@ -43,7 +46,7 @@ def request_parts(messages: list[dict], tools: list[dict] | None, tool_choice: A
         if isinstance(content, list) and any(
             not isinstance(block, dict) or block.get("type") not in {"text", "input_text"} for block in content
         ):
-            raise ValueError("Subscription CLI providers currently accept text only; image/audio blocks cannot be discarded.")
+            raise ValueError("Subscription CLI providers accept text and images only; audio blocks cannot be discarded.")
         if message.get("role") == "system" and isinstance(content, str):
             continue
         # Preserve tool-call IDs, names, results and roles, not just rendered content.
@@ -80,7 +83,8 @@ class SubscriptionCLIClient:
         for proc in processes:
             terminate_process(proc)
 
-    def _run(self, system: str, conversation: str, model: str, timeout: Any) -> tuple[str, dict | None]:
+    def _run(self, system: str, conversation: str, model: str, timeout: Any,
+             images: list[CLIImage] = ()) -> tuple[str, dict | None]:
         from hermes_cli._subprocess_compat import windows_hide_flags
 
         env = subscription_env()
@@ -91,16 +95,19 @@ class SubscriptionCLIClient:
             policy = Path(work) / "deny-native-tools.toml"
             policy.write_text(GEMINI_POLICY, encoding="utf-8")
             system_path = None
+            stream_json = bool(images) and self.engine == "claude"
+            image_paths = write_image_files(Path(work), images) if images and self.engine == "codex" else []
             if self.engine == "claude":
                 # Only Claude's cache breakpoint needs a separate system prompt; the others cache
                 # the stable stdin prefix on their own. A file keeps the text out of the process table.
                 system_path = Path(work) / "system-prompt.txt"
                 system_path.write_text(system, encoding="utf-8")
-                prompt = conversation
+                prompt = claude_stream_input(conversation, images) if stream_json else conversation
             else:
                 prompt = system + "\n\n" + conversation
             argv = cli_argv(self.engine, self.command, self.args, model, policy_path=str(policy),
-                            system_path=str(system_path) if system_path else None)
+                            system_path=str(system_path) if system_path else None,
+                            image_paths=image_paths, stream_json=stream_json)
             with self._lock:
                 if self.is_closed:
                     raise RuntimeError("Subscription CLI client is closed")
@@ -119,13 +126,13 @@ class SubscriptionCLIClient:
                     # stderr is never surfaced: CLI diagnostics may contain device codes or OAuth
                     # URLs, and authentication happens in the user's native terminal.
                     try:
-                        decode_result(self.engine, stdout)
+                        decode_result(self.engine, stdout, stream_json=stream_json)
                     except CLIReportedError:
                         raise
                     except RuntimeError:
                         pass
                     raise RuntimeError(f"{self.engine} CLI exited with code {proc.returncode}; check its native login/status.")
-                return decode_result(self.engine, stdout)
+                return decode_result(self.engine, stdout, stream_json=stream_json)
             finally:
                 terminate_process(proc)
                 release_process_group_once_empty(proc.pid, proc=proc)
@@ -137,8 +144,11 @@ class SubscriptionCLIClient:
 
     def _create(self, *, model: str = "default", messages: list[dict] | None = None, tools: list[dict] | None = None,
                 tool_choice: Any = None, response_format: Any = None, stream: bool = False, timeout: Any = None, **_: Any):
-        system, conversation = request_parts(messages or [], tools, tool_choice, response_format)
-        text, usage = self._run(system, conversation, model, timeout)
+        messages, images = detach_images(messages or [])
+        if images and self.engine not in IMAGE_ENGINES:
+            raise ValueError(f"{self.engine}-cli cannot see images; use claude-cli or codex-cli for image recognition.")
+        system, conversation = request_parts(messages, tools, tool_choice, response_format)
+        text, usage = self._run(system, conversation, model, timeout, images)
         calls, content = extract_tool_calls_from_text(text)
         if not calls and not content:
             raise RuntimeError(f"{self.engine} CLI returned an empty completion")

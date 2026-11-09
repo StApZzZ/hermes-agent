@@ -28,13 +28,15 @@ priority = 999
 
 
 def cli_argv(engine: str, command: str, args: list[str], model: str, *, policy_path: str,
-             system_path: str | None = None) -> list[str]:
-    """No shell, prompt argument or permission-bypass flag crosses this boundary."""
+             system_path: str | None = None, image_paths: list[str] = (), stream_json: bool = False) -> list[str]:
+    """No shell, prompt argument or permission-bypass flag crosses this boundary. ``stream_json``
+    makes Claude read one stream-json user message (how it takes images) and answer in stream-json."""
     tails = {
         "codex": ["exec", "--json", "--ephemeral", "--sandbox", "read-only", "--skip-git-repo-check",
                   "-c", 'forced_login_method="chatgpt"', "-c", 'model_provider="openai"',
                   "-c", 'web_search="disabled"', "-c", "features.shell_tool=false"],
-        "claude": ["--print", "--output-format", "json", "--no-session-persistence", "--restricted",
+        "claude": ["--print", *(("--input-format", "stream-json", "--output-format", "stream-json", "--verbose")
+                                 if stream_json else ("--output-format", "json")), "--no-session-persistence", "--restricted",
                    "--tools", "", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
                    "--disallowedTools", "mcp__*", "--disable-slash-commands",
                    "--settings", '{"forceLoginMethod":"claudeai"}'],
@@ -48,6 +50,7 @@ def cli_argv(engine: str, command: str, args: list[str], model: str, *, policy_p
     if model and model != "default":
         argv.append("--model=" + model)
     if engine == "codex":
+        argv += ["--image=" + path for path in image_paths]
         argv.append("-")
     elif engine == "gemini":
         # An explicit headless prompt prevents a pipe from starting the TUI.
@@ -125,7 +128,16 @@ def _reported_error(row: dict, *keys: str) -> str:
     return (": " + " ".join(text.split())[:300]) if text else ""
 
 
-def decode_result(engine: str, stdout: str) -> tuple[str, dict | None]:
+def _stream_result(stdout: str) -> str:
+    """The final ``result`` record of Claude's stream-json output, as the plain-json text."""
+    rows = [_object(line) for line in stdout.splitlines() if line.strip()]
+    results = [row for row in rows if row.get("type") == "result"]
+    if not results:
+        raise RuntimeError("Claude CLI did not report a result.")
+    return json.dumps(results[-1])
+
+
+def decode_result(engine: str, stdout: str, *, stream_json: bool = False) -> tuple[str, dict | None]:
     if engine == "codex":
         rows = [_object(line) for line in stdout.splitlines() if line.strip()]
         failed = [row for row in rows if row.get("type") in {"error", "turn.failed"}]
@@ -138,7 +150,7 @@ def decode_result(engine: str, stdout: str) -> tuple[str, dict | None]:
         text = "\n".join(str(row["item"].get("text") or "") for row in rows
                          if row.get("type") == "item.completed" and row.get("item", {}).get("type") == "agent_message")
         return text, completed[-1].get("usage")
-    data = _object(stdout)
+    data = _object(_stream_result(stdout) if stream_json else stdout)
     if data.get("is_error") or data.get("error"):
         raise CLIReportedError(f"{engine} CLI reported an error" + _reported_error(data, "result")
                            + "; no HTTP fallback was attempted.")

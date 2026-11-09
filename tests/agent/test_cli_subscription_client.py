@@ -1,5 +1,6 @@
 """Real child-process contracts for CLI completions; no accounts or network."""
 
+import base64
 import json
 from pathlib import Path
 import sys
@@ -122,6 +123,56 @@ def test_transcript_prefix_and_tool_results_are_not_rewritten():
     assert system_after == system_before and conversation_after.startswith(conversation_before)
 
 
-def test_multimodal_input_is_rejected_explicitly():
-    with pytest.raises(ValueError, match="text only"):
-        request_prompt([{"role":"user","content":[{"type":"image_url","image_url":{"url":"data:private"}}]}],None,None,None)
+def test_audio_input_is_rejected_explicitly():
+    with pytest.raises(ValueError, match="audio"):
+        request_prompt([{"role":"user","content":[{"type":"input_audio","input_audio":{"data":"x"}}]}],None,None,None)
+
+
+_PNG = b"\x89PNG\r\n\x1a\nfixture-pixels"
+
+
+def _image_message(text="What is in the picture?"):
+    url = "data:image/png;base64," + base64.b64encode(_PNG).decode()
+    return {"role":"user","content":[{"type":"text","text":text},{"type":"image_url","image_url":{"url":url}}]}
+
+
+@pytest.mark.parametrize("engine", ["claude", "codex"])
+def test_images_reach_the_cli_as_real_image_input(client_factory, engine):
+    client, capture = client_factory(engine)
+    result = client.chat.completions.create(messages=[{"role":"system","content":"S"}, _image_message()])
+    assert result.choices[0].message.content == "Привет from " + engine
+    payload = json.loads(capture.read_text())
+    assert [base64.b64decode(data) for data in payload["images"]] == [_PNG]
+    assert "[attached image #1]" in payload["prompt"] and "What is in the picture?" in payload["prompt"]
+    # Pixels go as image input, never inlined into the transcript or the process table.
+    assert base64.b64encode(_PNG).decode() not in payload["prompt"]
+    assert not any(base64.b64encode(_PNG).decode() in arg for arg in payload["argv"])
+
+
+def test_text_only_claude_turns_keep_the_plain_json_wire(client_factory):
+    client, capture = client_factory("claude")
+    client.chat.completions.create(messages=[{"role":"user","content":"hi"}])
+    assert "stream-json" not in json.loads(capture.read_text())["argv"]
+
+
+def test_gemini_refuses_images_instead_of_dropping_them(client_factory):
+    client, capture = client_factory("gemini")
+    with pytest.raises(ValueError, match="claude-cli or codex-cli"):
+        client.chat.completions.create(messages=[_image_message()])
+    assert not capture.exists()
+
+
+def test_remote_image_urls_are_refused():
+    from agent.cli_subscription_images import detach_images
+
+    with pytest.raises(ValueError, match="inline images"):
+        detach_images([{"role":"user","content":[{"type":"image_url","image_url":{"url":"https://example.com/a.png"}}]}])
+
+
+def test_image_markers_keep_the_cached_prefix_stable():
+    from agent.cli_subscription_images import detach_images
+
+    first, _ = detach_images([_image_message()])
+    later, images = detach_images([_image_message(), {"role":"assistant","content":"ok"}, _image_message("again")])
+    assert request_prompt(later, None, None, None).startswith(request_prompt(first, None, None, None))
+    assert len(images) == 2 and "[attached image #2]" in request_prompt(later, None, None, None)
