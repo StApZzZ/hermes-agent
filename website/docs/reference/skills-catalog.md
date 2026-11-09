@@ -61,6 +61,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 
 | Skill | Description | Path |
 |-------|-------------|------|
+| [`image-recognition`](../user-guide/skills/bundled/media/media-image-recognition.md) | Read text, QR codes, EXIF and content of images. | `media/image-recognition` |
 | [`youtube-content`](../user-guide/skills/bundled/media/media-youtube-content.md) | YouTube transcripts to summaries, threads, blogs. | `media/youtube-content` |
 
 ## note-taking

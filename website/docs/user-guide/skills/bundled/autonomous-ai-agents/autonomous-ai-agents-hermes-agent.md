@@ -41,6 +41,8 @@ What makes Hermes different:
 - **Many surfaces** — the same agent core drives the CLI, the Ink TUI, a native Electron desktop app, a web dashboard, and an ACP server for IDEs (VS Code / Zed / JetBrains).
 - **Provider-agnostic** — swap models and providers mid-workflow; credential pools rotate across multiple API keys automatically.
 - **Profiles** — run multiple independent Hermes instances with isolated configs, sessions, skills, and memory.
+- **Spaces** — group profiles by area (work, personal, projects): `hermes space use <name>`, `/space <name>` in a chat, folder binding (`hermes space bind`), and notes shared by a space's agents (`hermes space note <space> "..."`).
+- **Shared memory and moving memory** — `hermes memory add shared "..."` saves a fact every agent reads; `hermes memory list [<store>]` shows stores and numbered entries; `hermes memory copy|move <from> <to> [--entries 1,3-5 | --match TEXT] [--dry-run]` carries all or part of a memory between agents (`<profile>`, `<profile>:memory`, `<profile>:user`), spaces (`space:<name>`) and `shared`.
 - **Extensible & themeable** — plugins, MCP servers, custom tools, webhook triggers, cron scheduling, skins that theme every surface, desktop UI plugins, TUI widgets, and pet mascots.
 
 **This skill is a hub.** The body covers identity, quick start, spawning/orchestration, and hard invariants. Everything else lives in reference files — **load the matching reference (below) before answering**; do not answer detail questions from the body alone.

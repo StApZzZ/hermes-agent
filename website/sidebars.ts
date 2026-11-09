@@ -232,6 +232,7 @@ const sidebars: SidebarsConfig = {
                   key: 'skills-bundled-media',
                   collapsed: true,
                   items: [
+                    'user-guide/skills/bundled/media/media-image-recognition',
                     'user-guide/skills/bundled/media/media-youtube-content',
                   ],
                 },
