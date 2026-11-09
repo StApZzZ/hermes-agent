@@ -389,7 +389,9 @@ _SLACK_VIA_HERMES_ONLY = frozenset({
     # One-time answer to the low-disk prompt; `/hermes autoprune on` reaches it.
     "autoprune",
     # Occasional switch between spaces; `/hermes space work` reaches it.
-    "space"})
+    "space",
+    # A button menu over other commands (Telegram); `/hermes settings` lists them on Slack.
+    "settings"})
 
 
 def _sanitize_slack_name(raw: str) -> str:
