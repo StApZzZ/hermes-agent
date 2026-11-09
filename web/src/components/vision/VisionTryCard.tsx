@@ -72,7 +72,7 @@ export function VisionTryCard({ onToast }: VisionTryCardProps) {
     setRunning(true);
     try {
       const uploaded = await uploadChatImage(file, getManagementProfile());
-      setResponse(await visionApi.analyze(uploaded.path, ACTIONS.filter((a) => actions.has(a)), prompt, lang));
+      setResponse(await visionApi.analyze(uploaded.path, ACTIONS.filter((a) => actions.has(a)), prompt.trim() || v.defaultQuestion, lang));
     } catch (e) {
       onToast(`${v.uploadFailed}: ${errorMessage(e)}`, "error");
     } finally {

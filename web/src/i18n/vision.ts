@@ -29,6 +29,8 @@ export interface VisionStrings {
   pickFile: string;
   question: string;
   questionPlaceholder: string;
+  /** Sent when the question is empty, so the description comes back in the UI language. */
+  defaultQuestion: string;
   ocrLanguages: string;
   actions: Record<"describe" | "ocr" | "codes" | "meta", string>;
   run: string;
@@ -89,6 +91,7 @@ export const visionEn: VisionStrings = {
   pickFile: "Choose file",
   question: "Question (optional)",
   questionPlaceholder: "What is in the picture? What does the chart show?",
+  defaultQuestion: "Describe the picture precisely and copy any visible text word for word.",
   ocrLanguages: "OCR languages",
   actions: { describe: "Description", ocr: "Text (OCR)", codes: "QR / barcodes", meta: "Photo data (EXIF)" },
   run: "Recognise",
@@ -149,6 +152,7 @@ export const visionRu: VisionStrings = {
   pickFile: "Выбрать файл",
   question: "Вопрос (необязательно)",
   questionPlaceholder: "Что на картинке? Что показывает график?",
+  defaultQuestion: "Опиши картинку точно, по-русски, и перепиши весь видимый текст дословно.",
   ocrLanguages: "Языки OCR",
   actions: { describe: "Описание", ocr: "Текст (OCR)", codes: "QR / штрихкоды", meta: "Данные фото (EXIF)" },
   run: "Распознать",
