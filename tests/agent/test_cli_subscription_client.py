@@ -176,3 +176,26 @@ def test_image_markers_keep_the_cached_prefix_stable():
     later, images = detach_images([_image_message(), {"role":"assistant","content":"ok"}, _image_message("again")])
     assert request_prompt(later, None, None, None).startswith(request_prompt(first, None, None, None))
     assert len(images) == 2 and "[attached image #2]" in request_prompt(later, None, None, None)
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_async_auxiliary_calls_can_await_the_cli_client(client_factory, stream):
+    """vision_analyze and other async auxiliary tasks ``await`` create(); the CLI client is blocking."""
+    import asyncio
+
+    from agent.auxiliary_client import _to_async_client
+
+    client, _ = client_factory("claude")
+    async_client, _model = _to_async_client(client, "default", is_vision=True)
+
+    async def call():
+        result = await async_client.chat.completions.create(messages=[_image_message()], stream=stream)
+        if stream:
+            return [chunk async for chunk in result]
+        return result
+
+    result = asyncio.run(call())
+    text = ("".join(c.choices[0].delta.content or "" for c in result if c.choices) if stream
+            else result.choices[0].message.content)
+    assert text == "Привет from claude"
+    assert async_client.base_url == "cli://claude"

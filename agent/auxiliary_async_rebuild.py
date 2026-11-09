@@ -40,3 +40,47 @@ def configured_default_headers(sync_client: Any) -> dict[str, str]:
     """
     configured = getattr(sync_client, "_custom_headers", None) if isinstance(sync_client, OpenAI) else None
     return dict(configured) if isinstance(configured, Mapping) else {}
+
+
+class _AsyncProcessCompletions:
+    def __init__(self, sync_completions: Any):
+        self._sync = sync_completions
+
+    async def create(self, **kwargs: Any) -> Any:
+        import inspect
+
+        result = await asyncio.to_thread(self._sync.create, **kwargs)
+        if inspect.isawaitable(result):  # a plugin client that is natively async
+            result = await result
+        if kwargs.get("stream") and not hasattr(result, "choices") and not hasattr(result, "__aiter__"):
+            return _aiter_off_loop(result)
+        return result
+
+
+async def _aiter_off_loop(iterable: Any):
+    """A sync chunk stream as an async one; each ``next`` may block on a child process."""
+    iterator, done = iter(iterable), object()
+    while (item := await asyncio.to_thread(next, iterator, done)) is not done:
+        yield item
+
+
+class AsyncProcessClient:
+    """Async face of a client that declares ``HERMES_SKIP_ASYNC_WRAP`` (subscription CLIs, ACP shims).
+
+    Such a client is a subprocess driver, not an HTTP pool, so it must not be rebuilt as
+    ``AsyncOpenAI`` from its ``cli://``/``acp://`` marker URL; but async callers ``await``
+    ``chat.completions.create``, so its blocking ``create`` runs in a worker thread. Every other
+    attribute (``base_url``, ``close``, capability flags) is the wrapped client's.
+    """
+
+    def __init__(self, sync_client: Any):
+        self._sync_client = sync_client
+
+    @property
+    def chat(self) -> Any:
+        from types import SimpleNamespace
+
+        return SimpleNamespace(completions=_AsyncProcessCompletions(self._sync_client.chat.completions))
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._sync_client, name)

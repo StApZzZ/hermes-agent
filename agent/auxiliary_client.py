@@ -4564,9 +4564,9 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
         from agent.gemini_native_adapter import GeminiNativeClient, AsyncGeminiNativeClient
         if isinstance(sync_client, GeminiNativeClient):
             return AsyncGeminiNativeClient(sync_client), model
-    # ACP shims (subprocess, not an HTTP pool) are already async-safe and opt out of the wrapper.
-    if _client_declares(sync_client, "HERMES_SKIP_ASYNC_WRAP"):
-        return sync_client, model
+    if _client_declares(sync_client, "HERMES_SKIP_ASYNC_WRAP"):  # process shims: create runs off-loop, no AsyncOpenAI
+        from agent.auxiliary_async_rebuild import AsyncProcessClient
+        return AsyncProcessClient(sync_client), model
     sync_base_url = str(sync_client.base_url)
     # A key_cmd/Entra client keeps its credential in the SDK's per-request provider slot, not in
     # ``.api_key`` (which stays ""); rebuilding from the snapshot alone ships NO Authorization

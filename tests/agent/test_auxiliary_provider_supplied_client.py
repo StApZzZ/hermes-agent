@@ -92,6 +92,8 @@ def test_native_profile_supplies_the_auxiliary_client(registered, extra):
     registered(_probe_profile(_NativeProfile, "aux-seam-native"))
     client, model = resolve_provider_client("aux-seam-native", "probe-model", **extra)
 
+    # Async mode keeps the native client behind an awaitable face, never an AsyncOpenAI rebuild.
+    client = getattr(client, "_sync_client", client)
     assert isinstance(client, _FakeNativeClient)
     assert model == "probe-model"
     # The hook receives the same mapping the branch would have passed to openai.OpenAI.

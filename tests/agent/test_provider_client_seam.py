@@ -92,4 +92,4 @@ def test_skip_flags_replace_the_isinstance_checks_for_in_and_out_of_tree_clients
 
     client = _FakeClient()  # never imported by auxiliary_client
     assert _maybe_wrap_anthropic(client, "m", "k", "acp://seam-test") is client
-    assert _to_async_client(client, "m")[0] is client
+    assert _to_async_client(client, "m")[0]._sync_client is client  # awaitable face, not an AsyncOpenAI rebuild
