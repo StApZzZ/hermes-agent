@@ -355,7 +355,15 @@ sudo apt install tesseract-ocr tesseract-ocr-rus zbar-tools libimage-exiftool-pe
 
 **Нарисовать картинку.** Попросите «нарисуй …» — бот пришлёт картинку. Рисует Codex CLI по подписке
 ChatGPT (примерно 30–60 секунд, расходует лимит подписки). Включается один раз: `/settings` →
-**Рисование** → **Codex CLI**, затем новый разговор (`/new`). Telegram стирает из фото место и время
+**Рисование** → **Codex CLI**, затем новый разговор (`/new`).
+
+**Codex — первым для картинок и запасным для всего.** Чтобы фото разбирал Codex, а основная модель
+при сбое (лимит подписки, отказ фильтра Claude) сама переключалась на Codex:
+
+```bash
+hermes config set auxiliary.vision.provider codex-cli
+hermes config set fallback_providers '[{provider: codex-cli, model: default}]'
+``` Telegram стирает из фото место и время
 съёмки — если они нужны, отправьте снимок **файлом**.
 
 **То же в браузере.** `hermes dashboard` → страница **Изображения**: режим распознавания, какая
