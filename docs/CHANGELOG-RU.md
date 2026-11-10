@@ -20,6 +20,8 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+## 2026.11.11.2
+
 ### Изменено
 
 - **`web-access.sh` работает через Angie вместо Caddy.** Angie ставится из своего репозитория и сам
