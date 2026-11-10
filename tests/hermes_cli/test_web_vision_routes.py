@@ -100,3 +100,41 @@ def test_tools_reports_the_skill_doctor(client):
     test_client, _home = client
     tools = test_client.get("/api/vision/tools").json()
     assert set(tools["tools"]) == {"tesseract", "zbarimg", "exiftool", "claude", "codex"}
+
+
+def test_generation_backend_is_picked_among_available_ones(client, monkeypatch):
+    from agent.image_gen_choice import ImageGenChoice
+
+    test_client, home = client
+    monkeypatch.setattr("agent.image_gen_choice.available_choices",
+                        lambda: [ImageGenChoice("codex-cli", "Codex CLI (ChatGPT subscription)")])
+    assert test_client.get("/api/vision/generation").json() == {
+        "provider": None, "choices": [{"name": "codex-cli", "label": "Codex CLI (ChatGPT subscription)"}]}
+
+    assert test_client.put("/api/vision/generation", json={"provider": "fal"}).status_code == 400
+    saved = test_client.put("/api/vision/generation", json={"provider": "codex-cli"})
+    assert saved.status_code == 200 and saved.json()["provider"] == "codex-cli"
+    assert "provider: codex-cli" in (home / "config.yaml").read_text(encoding="utf-8")
+
+
+def test_generate_returns_the_picture_inline(client, monkeypatch, tmp_path):
+    test_client, _home = client
+    picture = tmp_path / "drawn.png"
+    picture.write_bytes(base64.b64decode(_PNG))
+    calls = []
+
+    class _Backend:
+        def generate(self, prompt, aspect_ratio="landscape", **_kw):
+            calls.append((prompt, aspect_ratio))
+            return {"success": True, "image": str(picture), "provider": "codex-cli", "model": "codex-cli"}
+
+    monkeypatch.setattr("agent.image_gen_registry.get_active_provider", lambda: _Backend())
+    response = test_client.post("/api/vision/generate", json={"prompt": "a red apple", "aspect_ratio": "square"})
+    body = response.json()
+    assert response.status_code == 200 and body["success"] is True and body["provider"] == "codex-cli"
+    assert body["image"] == "data:image/png;base64," + _PNG
+    assert calls == [("a red apple", "square")]
+    assert test_client.post("/api/vision/generate", json={"prompt": "  "}).status_code == 400
+
+    monkeypatch.setattr("agent.image_gen_registry.get_active_provider", lambda: None)
+    assert test_client.post("/api/vision/generate", json={"prompt": "x"}).json()["success"] is False

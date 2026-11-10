@@ -1,5 +1,6 @@
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
+import { VisionDrawCard } from "@/components/vision/VisionDrawCard";
 import { VisionModeCard } from "@/components/vision/VisionModeCard";
 import { VisionToolsCard } from "@/components/vision/VisionToolsCard";
 import { VisionTryCard } from "@/components/vision/VisionTryCard";
@@ -14,6 +15,7 @@ export default function VisionPage() {
       <p className="text-sm text-muted-foreground">{v.subtitle}</p>
       <VisionModeCard onToast={showToast} />
       <VisionTryCard onToast={showToast} />
+      <VisionDrawCard onToast={showToast} />
       <VisionToolsCard />
       <Toast toast={toast} />
     </div>

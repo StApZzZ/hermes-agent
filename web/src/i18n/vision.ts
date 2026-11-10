@@ -42,13 +42,26 @@ export interface VisionStrings {
   openMap: string;
   notInstalled: string;
   chatHint: string;
+  draw: {
+    title: string;
+    hint: string;
+    backend: string;
+    noBackend: string;
+    prompt: string;
+    placeholder: string;
+    aspects: Record<"landscape" | "square" | "portrait", string>;
+    run: string;
+    running: string;
+    download: string;
+    chatHint: string;
+  };
 }
 
 export const visionEn: VisionStrings = {
   title: "Image recognition",
-  subtitle: "How Hermes looks at pictures you send in chats, which tools it has, and a place to try them.",
+  subtitle: "How Hermes looks at pictures you send in chats, which tools it has, a place to try them, and drawing new pictures.",
   modeTitle: "How images reach the model",
-  modeHint: "Applies from the next picture, in every chat. Same switch as /settings → Images in Telegram.",
+  modeHint: "Applies from the next picture, in every chat. Same switch as /settings → Recognize images in Telegram.",
   modes: {
     auto: {
       label: "Auto",
@@ -103,13 +116,26 @@ export const visionEn: VisionStrings = {
   openMap: "Open on the map",
   notInstalled: "not installed",
   chatHint: "In chats: send a photo, or ask “read the text on the picture” — the agent uses these tools itself.",
+  draw: {
+    title: "Draw a picture",
+    hint: "Describe the picture; the chosen backend draws it (Codex CLI uses your ChatGPT subscription, about 30–60 s).",
+    backend: "Who draws",
+    noBackend: "No backend can draw here yet. Install Codex CLI and sign in (codex login), then refresh.",
+    prompt: "What to draw",
+    placeholder: "A cosy reading nook by a rainy window, watercolor",
+    aspects: { landscape: "Landscape", square: "Square", portrait: "Portrait" },
+    run: "Draw",
+    running: "Drawing…",
+    download: "Download",
+    chatHint: "In chats: ask “draw …” — the agent uses the same backend (from a new conversation after a switch).",
+  },
 };
 
 export const visionRu: VisionStrings = {
   title: "Распознавание изображений",
-  subtitle: "Как Hermes смотрит на картинки из чатов, какие инструменты у него есть, и где их попробовать.",
+  subtitle: "Как Hermes смотрит на картинки из чатов, какие инструменты у него есть, где их попробовать — и как нарисовать новую картинку.",
   modeTitle: "Как картинки попадают к модели",
-  modeHint: "Действует со следующей картинки во всех чатах. То же, что /settings → Изображения в Telegram.",
+  modeHint: "Действует со следующей картинки во всех чатах. То же, что /settings → Распознавание в Telegram.",
   modes: {
     auto: {
       label: "Авто",
@@ -164,4 +190,17 @@ export const visionRu: VisionStrings = {
   openMap: "Открыть на карте",
   notInstalled: "не установлен",
   chatHint: "В чатах: просто пришлите фото или попросите «прочитай текст на картинке» — агент сам воспользуется этими инструментами.",
+  draw: {
+    title: "Нарисовать картинку",
+    hint: "Опишите картинку — её нарисует выбранный способ (Codex CLI рисует по подписке ChatGPT, примерно 30–60 с).",
+    backend: "Кто рисует",
+    noBackend: "Рисовать пока некому. Установите Codex CLI и войдите (codex login), затем обновите страницу.",
+    prompt: "Что нарисовать",
+    placeholder: "Уютный уголок для чтения у окна в дождь, акварель",
+    aspects: { landscape: "Горизонтально", square: "Квадрат", portrait: "Вертикально" },
+    run: "Нарисовать",
+    running: "Рисую…",
+    download: "Скачать",
+    chatHint: "В чатах: попросите «нарисуй …» — агент рисует тем же способом (после смены — с нового разговора).",
+  },
 };

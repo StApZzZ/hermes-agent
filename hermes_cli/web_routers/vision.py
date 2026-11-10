@@ -7,6 +7,8 @@
   claude, codex), run in the environment the agent's terminal gets.
 - ``analyze``: runs ``vision_analyze`` and the skill's ``ocr``/``codes``/``meta`` on an image the page
   uploaded through ``/api/chat/image-upload``; only files in the profile's image staging dir.
+- ``generation`` / ``generate``: which backend draws pictures (``image_gen.provider``, only backends
+  available here) and one picture from it, returned inline as a data URL.
 """
 
 from __future__ import annotations
@@ -40,6 +42,15 @@ _TOOL_TIMEOUT = 120
 
 class VisionSettingsUpdate(BaseModel):
     image_input_mode: str
+
+
+class GenerationProviderUpdate(BaseModel):
+    provider: str
+
+
+class GenerateRequest(BaseModel):
+    prompt: str
+    aspect_ratio: str = "landscape"
 
 
 class VisionAnalyzeRequest(BaseModel):
@@ -194,3 +205,69 @@ async def analyze_image(body: VisionAnalyzeRequest, profile: Optional[str] = Non
 
     results = await asyncio.gather(*(asyncio.to_thread(_one, action) for action in actions))
     return {"path": str(target), "results": dict(zip(actions, results))}
+
+
+def _generation_state() -> dict:
+    from agent.image_gen_choice import available_choices, selected_provider
+
+    return {"provider": selected_provider(),
+            "choices": [{"name": c.name, "label": c.label} for c in available_choices()]}
+
+
+@router.get("/api/vision/generation")
+async def get_generation(profile: Optional[str] = None):
+    def _run():
+        with _config_profile_scope(profile):
+            return _generation_state()
+
+    return await asyncio.to_thread(_run)
+
+
+@router.put("/api/vision/generation")
+async def set_generation(body: GenerationProviderUpdate, profile: Optional[str] = None):
+    def _run():
+        with _config_profile_scope(profile), _CONFIG_MUTATION_LOCK:
+            state = _generation_state()
+            if body.provider not in {c["name"] for c in state["choices"]}:
+                raise HTTPException(status_code=400, detail=f"{body.provider} is not available here")
+            config = load_config()
+            section = config.get("image_gen") if isinstance(config.get("image_gen"), dict) else {}
+            config["image_gen"] = {**section, "provider": body.provider}
+            save_config(config)
+            return _generation_state()
+
+    return await asyncio.to_thread(_run)
+
+
+def _inline_image(ref: str) -> str:
+    """A cached picture as a data URL (the page cannot read the cache dir); remote URLs pass through."""
+    import base64
+    import mimetypes
+
+    if ref.startswith(("http://", "https://", "data:")):
+        return ref
+    path = Path(ref)
+    mime = mimetypes.guess_type(path.name)[0] or "image/png"
+    return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+@router.post("/api/vision/generate")
+async def generate_image(body: GenerateRequest, profile: Optional[str] = None):
+    prompt = body.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Describe the picture first")
+
+    def _run():
+        from agent.image_gen_registry import get_active_provider
+
+        with _config_profile_scope(profile):
+            provider = get_active_provider()
+            if provider is None:
+                return {"success": False, "error": "No picture backend is selected. Pick one above."}
+            result = provider.generate(prompt, body.aspect_ratio)
+        if not result.get("success"):
+            return {"success": False, "provider": result.get("provider"), "error": result.get("error")}
+        return {"success": True, "provider": result.get("provider"), "model": result.get("model"),
+                "path": result.get("image"), "image": _inline_image(str(result.get("image")))}
+
+    return await asyncio.to_thread(_run)
