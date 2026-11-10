@@ -353,6 +353,37 @@ ssh root@<server> /usr/local/sbin/hermes-hardening confirm
 только с другого адреса из allowlist или через консоль VNC провайдера.
 Не ставьте Docker поверх этой таблицы без пересмотра правил: forward закрыт.
 
+### Веб-панель с VPN и приложение в Telegram
+
+`scripts/remote-dev/web-access.sh` (от root на закрытом сервере) открывает Hermes в браузере без проброса портов:
+
+- `https://<домен>/` — Webapp (рабочее место Desktop: чаты, файлы, настройки), `https://<домен>/panel/` — веб-панель
+  (`hermes dashboard`: изображения, конфиг, логи, cron);
+- вход по паролю — **только с адресов VPN** (`dashboard.auth_networks.basic`). С других адресов форма пароля
+  не показывается, а уже открытая сессия получает 403 и снова работает, как только вы вернулись в VPN;
+- кнопка **Hermes** в меню вашего бота открывает Webapp как Telegram Mini App. Пускает **только ваш аккаунт
+  Telegram** (`dashboard.telegram_mini_app.allowed_users`; подпись Telegram проверяется токеном бота),
+  с любой сети, без пароля.
+
+```sh
+ssh -t root@<server> /home/hermes/repos/hermes-agent/scripts/remote-dev/web-access.sh apply
+```
+
+По умолчанию адреса VPN берутся из allowlist SSH (раздел выше), ваш Telegram ID — из `TELEGRAM_ALLOWED_USERS`
+(если там один ID), домен — `<IP через дефисы>.sslip.io` (сертификат Let's Encrypt выпускает Caddy). Переопределить:
+`--vpn 198.51.100.7,203.0.113.0/24`, `--telegram-user 123456789`, `--domain hermes.example.com`. Пароль скрипт
+создаёт сам и печатает **один раз** (логин `admin`); новый — `apply --reset-password`.
+
+Что меняется на сервере: ставится Caddy, порт 443 открывается для всех (`hermes-hardening public-port add 443`,
+SSH остаётся только с allowlist; без 443 Telegram не откроет Mini App, а Let's Encrypt не выдаст сертификат),
+в `config.yaml` пишутся `webapp.*`, `dashboard.public_url`, `dashboard.auth_networks`,
+`dashboard.telegram_mini_app` и пароль (scrypt-хеш), появляется служба `hermes-dashboard` пользователя `hermes`,
+gateway перезапускается. Проверка — `web-access.sh status`, откат — `web-access.sh remove`.
+
+Адрес VPN сменился — поправьте список без перезапуска: `hermes config set dashboard.auth_networks '{"basic": ["<ip>"]}'`
+(и `harden-server.sh apply` для SSH). Telegram Web (в браузере) Mini App не откроет: только приложения Telegram
+на телефоне и компьютере.
+
 ## 9. Резервные копии
 
 `scripts/remote-dev/backup-pull.sh [--force] [ssh-alias]` запускается на локальной

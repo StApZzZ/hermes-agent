@@ -6,6 +6,8 @@
 #   harden-server.sh apply --allow <ipv4|ipv6[/len]> [--allow ...] [--admin-user NAME ...]
 #   harden-server.sh confirm      # keep the new state; cancels the automatic rollback
 #   harden-server.sh rollback     # restore the pre-apply sshd/nftables state
+#   harden-server.sh public-port add|remove <port>   # a TCP port open to every address (HTTPS for a
+#                                 # Telegram Mini App); kept across later applies. SSH stays as it is.
 #
 # `apply` arms a rollback that fires after 5 minutes unless `confirm` runs from a NEW SSH
 # session, so a wrong allowlist cannot lock the operator out. Outbound traffic stays open:
@@ -17,6 +19,9 @@ STATE=/var/lib/hermes-hardening
 SELF=/usr/local/sbin/hermes-hardening
 TIMER=hermes-hardening-rollback
 SSHD_DROPIN=/etc/ssh/sshd_config.d/00-hermes-hardening.conf
+# One port per line: TCP ports open to everyone (public-port); the allowlist apply last wrote.
+PUBLIC_PORTS=$STATE/public-ports
+ALLOWED=$STATE/allow
 
 die() { echo "harden-server: $*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || die "run as root"
@@ -47,11 +52,12 @@ rollback() {
 ssh_ports() { sshd -T 2>/dev/null | awk '$1 == "port" {print $2}' | sort -un | paste -sd, -; }
 
 write_nft() {
-    local a v4=() v6=() set4="" set6="" ports
+    local a v4=() v6=() set4="" set6="" ports public=""
     for a in "$@"; do case $a in *:*) v6+=("$a") ;; *) v4+=("$a") ;; esac; done
     [ ${#v4[@]} -eq 0 ] || set4="elements = { $(IFS=,; echo "${v4[*]}") }"
     [ ${#v6[@]} -eq 0 ] || set6="elements = { $(IFS=,; echo "${v6[*]}") }"
     ports=$(ssh_ports); [ -n "$ports" ] || die "cannot read the sshd port (sshd -T)"
+    [ ! -s "$PUBLIC_PORTS" ] || public="elements = { $(sort -un "$PUBLIC_PORTS" | paste -sd, -) }"
     cat > "$NFT.new" <<EOF
 #!/usr/sbin/nft -f
 # Managed by hermes-hardening. Only this table is (re)loaded; other tables are left alone.
@@ -66,6 +72,10 @@ table inet hermes_fw {
         type ipv6_addr; flags interval
         $set6
     }
+    set public_tcp {
+        type inet_service
+        $public
+    }
     chain input {
         type filter hook input priority filter; policy drop;
         iif "lo" accept
@@ -73,6 +83,7 @@ table inet hermes_fw {
         ct state established,related accept
         ip saddr @ssh_allow tcp dport { $ports } accept
         ip6 saddr @ssh_allow6 tcp dport { $ports } accept
+        tcp dport @public_tcp accept
         ip saddr @ssh_allow icmp type echo-request accept
         ip6 saddr @ssh_allow6 icmpv6 type echo-request accept
         icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit, nd-router-advert } ip6 hoplimit 255 accept
@@ -184,6 +195,7 @@ apply() {
 
     # Checked before the rollback is armed, so a bad address changes nothing.
     write_nft "${allow[@]}"
+    printf '%s\n' "${allow[@]}" > "$ALLOWED"
 
     systemctl stop "$TIMER.timer" 2>/dev/null || true
     systemctl reset-failed "$TIMER.service" "$TIMER.timer" 2>/dev/null || true
@@ -218,9 +230,41 @@ EOF
     echo "harden-server: applied; it rolls back in 5 minutes unless '$SELF confirm' runs from a NEW ssh session"
 }
 
+# The allowlist in force: what apply last wrote, else (a host locked before it was recorded) the live sets.
+current_allow() {
+    if [ -s "$ALLOWED" ]; then cat "$ALLOWED"; return; fi
+    local set
+    for set in ssh_allow ssh_allow6; do
+        nft list set inet hermes_fw "$set" 2>/dev/null | tr -d ' \t\n' \
+            | sed -n 's/.*elements={\([^}]*\)}.*/\1/p' | tr , '\n'
+    done
+}
+
+# Opening or closing a public port leaves SSH as it is, so no rollback is armed.
+public_port() {
+    local action=${1:-} port=${2:-} allow
+    case $port in ''|*[!0-9]*) die "usage: $0 public-port add|remove <port>" ;; esac
+    [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || die "port out of range: $port"
+    nft list table inet hermes_fw >/dev/null 2>&1 || die "the host is not locked (run apply first)"
+    install -m 700 "$0" "$SELF"   # an older installed copy has no public_tcp set to roll forward
+    mapfile -t allow < <(current_allow)
+    [ ${#allow[@]} -gt 0 ] || die "cannot read the current SSH allowlist"
+    touch "$PUBLIC_PORTS"
+    case $action in
+        add) grep -qx "$port" "$PUBLIC_PORTS" || echo "$port" >> "$PUBLIC_PORTS" ;;
+        remove) sed -i "/^$port\$/d" "$PUBLIC_PORTS" ;;
+        *) die "usage: $0 public-port add|remove <port>" ;;
+    esac
+    write_nft "${allow[@]}"
+    mv "$NFT.new" "$NFT"
+    nft -f "$NFT"
+    echo "harden-server: TCP open to everyone: $(sort -un "$PUBLIC_PORTS" | paste -sd' ' -)"
+}
+
 case ${1:-} in
     apply) shift; apply "$@" ;;
+    public-port) shift; public_port "$@" ;;
     confirm) systemctl stop "$TIMER.timer" 2>/dev/null || true; echo "harden-server: confirmed, rollback disarmed" ;;
     rollback) rollback ;;
-    *) die "usage: $0 apply --allow <ip> [--allow ...] [--admin-user NAME ...] | confirm | rollback" ;;
+    *) die "usage: $0 apply --allow <ip> [--allow ...] [--admin-user NAME ...] | confirm | rollback | public-port add|remove <port>" ;;
 esac

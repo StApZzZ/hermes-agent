@@ -20,6 +20,16 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+### Новое
+
+- **Веб-панель по HTTPS, вход только из VPN.** `scripts/remote-dev/web-access.sh apply` (от root на сервере)
+  открывает Webapp на `https://<домен>/` и веб-панель на `https://<домен>/panel/` через Caddy с сертификатом
+  Let's Encrypt. Вход по паролю работает только с адресов из `dashboard.auth_networks` (по умолчанию — адреса
+  VPN из allowlist SSH); с других адресов форма пароля не показывается, а открытая сессия не работает.
+- **Hermes как приложение внутри Telegram.** Кнопка «Hermes» в меню бота открывает Webapp как Telegram Mini App
+  и входит без пароля. Пускает только аккаунты из `dashboard.telegram_mini_app.allowed_users`; подпись Telegram
+  проверяется токеном бота. Подробности — [REMOTE-DEVELOPMENT-RU.md](REMOTE-DEVELOPMENT-RU.md), раздел 8.
+
 ## 2026.11.10.3
 
 ### Исправлено
