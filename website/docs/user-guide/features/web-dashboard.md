@@ -872,7 +872,7 @@ dashboard:
 
 - A provider the map does not name is accepted from any address. A named provider whose list holds nothing valid is accepted from **no** address, so a typo narrows access and never widens it.
 - From another address the provider is not offered on `/login` or `/api/auth/providers`, its sign-in routes answer `403`, and a session it issued gets `403 network_not_allowed` (the session itself stays, and works again from an accepted address). When no provider accepts the address, `/login` is a `403` page.
-- The client address is the connection's peer. Behind a reverse proxy, uvicorn takes it from `X-Forwarded-For` only when the proxy is loopback or in `dashboard.trusted_proxies`, so the proxy must set that header (Caddy does by default; nginx with `proxy_set_header X-Forwarded-For $remote_addr`). A proxy that does not makes every client look like the proxy, which a list without its address refuses.
+- The client address is the connection's peer. Behind a reverse proxy, uvicorn takes it from `X-Forwarded-For` only when the proxy is loopback or in `dashboard.trusted_proxies`, so the proxy must set that header (nginx and Angie: `proxy_set_header X-Forwarded-For $remote_addr`; Caddy does by default). A proxy that does not makes every client look like the proxy, which a list without its address refuses.
 - The map is read on each check: editing it needs no restart.
 
 The gateway-served [Webapp](../desktop.md) uses the same sign-in, so the same map applies there.

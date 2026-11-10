@@ -370,15 +370,16 @@ ssh -t root@<server> /home/hermes/repos/hermes-agent/scripts/remote-dev/web-acce
 ```
 
 По умолчанию адреса VPN берутся из allowlist SSH (раздел выше), ваш Telegram ID — из `TELEGRAM_ALLOWED_USERS`
-(если там один ID), домен — `<IP через дефисы>.sslip.io` (сертификат Let's Encrypt выпускает Caddy). Переопределить:
+(если там один ID), домен — `<IP через дефисы>.sslip.io` (сертификат Let's Encrypt выпускает сам Angie, по TLS-ALPN на 443). Переопределить:
 `--vpn 198.51.100.7,203.0.113.0/24`, `--telegram-user 123456789`, `--domain hermes.example.com`. Пароль скрипт
 создаёт сам и печатает **один раз** (логин `admin`); новый — `apply --reset-password`.
 
-Что меняется на сервере: ставится Caddy, порт 443 открывается для всех (`hermes-hardening public-port add 443`,
+Что меняется на сервере: ставится Angie из его репозитория (если ещё не стоит) с сайтом
+`/etc/angie/http.d/hermes-web-access.conf`, порт 443 открывается для всех (`hermes-hardening public-port add 443`,
 SSH остаётся только с allowlist; без 443 Telegram не откроет Mini App, а Let's Encrypt не выдаст сертификат),
 в `config.yaml` пишутся `webapp.*`, `dashboard.public_url`, `dashboard.auth_networks`,
 `dashboard.telegram_mini_app` и пароль (scrypt-хеш), появляется служба `hermes-dashboard` пользователя `hermes`,
-gateway перезапускается. Проверка — `web-access.sh status`, откат — `web-access.sh remove`.
+gateway перезапускается. Проверка — `web-access.sh status`, откат — `web-access.sh remove` (сайт удаляется, сам Angie остаётся).
 
 Адрес VPN сменился — поправьте список без перезапуска: `hermes config set dashboard.auth_networks '{"basic": ["<ip>"]}'`
 (и `harden-server.sh apply` для SSH). Telegram Web (в браузере) Mini App не откроет: только приложения Telegram

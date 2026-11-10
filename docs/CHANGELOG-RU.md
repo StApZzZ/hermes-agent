@@ -20,6 +20,12 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+### Изменено
+
+- **`web-access.sh` работает через Angie вместо Caddy.** Angie ставится из своего репозитория и сам
+  получает сертификат Let's Encrypt (TLS-ALPN на 443, порт 80 остаётся закрытым). Сайт — отдельный файл
+  `/etc/angie/http.d/hermes-web-access.conf`, `remove` удаляет только его.
+
 ## 2026.11.11
 
 ### Новое

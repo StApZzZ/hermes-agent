@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Open Hermes in the browser on a server closed by harden-server.sh:
 #   - https://<domain>/ the Webapp (the Desktop workspace), https://<domain>/panel/ the web dashboard,
-#     through Caddy with a Let's Encrypt certificate over TLS-ALPN (port 80 stays closed);
+#     through Angie with a Let's Encrypt certificate over TLS-ALPN (port 80 stays closed);
 #   - password sign-in only from your VPN addresses (dashboard.auth_networks.basic);
 #   - a Telegram Mini App in your bot's menu that signs in only your Telegram account
 #     (dashboard.telegram_mini_app.allowed_users), from any network.
-# Debian/Ubuntu (apt) or Fedora (dnf); RHEL-family hosts need caddy from its COPR first. Run as root on the server.
+# Debian/Ubuntu (Angie comes from its own apt repository). Run as root on the server.
 #
 #   web-access.sh apply [--domain NAME] [--vpn ADDR[,ADDR]] [--telegram-user ID] [--user hermes] [--reset-password]
 #   web-access.sh status [--user hermes]
-#   web-access.sh remove [--user hermes]   # Caddy site and port 443 off, Webapp and dashboard off, menu button back
+#   web-access.sh remove [--user hermes]   # Angie site and port 443 off, Webapp and dashboard off, menu button back
 #
 # Defaults: --vpn is the SSH allowlist harden-server.sh applied (your VPN exits), --telegram-user the one id in
 # TELEGRAM_ALLOWED_USERS, --domain <public IPv4 with dashes>.sslip.io. A rerun keeps the password unless
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-CADDYFILE=/etc/caddy/Caddyfile
+ANGIE_SITE=/etc/angie/http.d/hermes-web-access.conf
 MARK="# Managed by hermes web-access.sh"
 PORT=9120 # webapp.port default; the gateway's Webapp listener
 DASH_PORT=9119
@@ -75,49 +75,88 @@ public_ipv4() {
     echo "$ip"
 }
 
-install_caddy() {
-    command -v caddy >/dev/null && return
-    say "Installing Caddy"
-    if command -v apt-get >/dev/null; then
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq caddy >/dev/null
-    elif command -v dnf >/dev/null; then
-        dnf install -y -q caddy >/dev/null 2>&1 \
-            || die "dnf has no caddy here; on RHEL-family hosts: dnf copr enable @caddy/caddy, then rerun"
-    else
-        die "Debian/Ubuntu (apt) or Fedora (dnf) only"
-    fi
+# Angie from its own repository (https://angie.software): its acme module gets the certificate itself.
+install_angie() {
+    command -v angie >/dev/null && return
+    say "Installing Angie"
+    command -v apt-get >/dev/null || die "Angie is installed here from its apt repository: Debian/Ubuntu only"
+    local id version codename
+    id=$(. /etc/os-release && echo "$ID") version=$(. /etc/os-release && echo "$VERSION_ID")
+    codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y -qq ca-certificates curl >/dev/null
+    curl -fsSL -o /etc/apt/trusted.gpg.d/angie-signing.gpg https://angie.software/keys/angie-signing.gpg
+    echo "deb https://download.angie.software/angie/$id/$version $codename main" > /etc/apt/sources.list.d/angie.list
+    apt-get update -qq
+    apt-get install -y -qq angie >/dev/null
 }
 
-write_caddyfile() {
-    if [ -f "$CADDYFILE" ] && ! grep -qxF "$MARK" "$CADDYFILE"; then
-        cp -a "$CADDYFILE" "$CADDYFILE.before-hermes"
-        echo "web-access: the previous $CADDYFILE is in $CADDYFILE.before-hermes"
+# The proxy headers, repeated per location: a location that sets any proxy_set_header inherits none.
+# X-Forwarded-For is the peer address, never the client's own header; Hermes trusts it from loopback only.
+proxy_headers() {
+    cat <<'HDR'
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $hermes_connection_upgrade;
+HDR
+}
+
+write_angie_site() {
+    [ -d "$(dirname "$ANGIE_SITE")" ] || die "$(dirname "$ANGIE_SITE") is missing: this Angie does not use http.d"
+    grep -qE "include[[:space:]]+/etc/angie/http\.d/\*\.conf" /etc/angie/angie.conf \
+        || die "/etc/angie/angie.conf does not include /etc/angie/http.d/*.conf"
+    if [ -f "$ANGIE_SITE" ] && ! grep -qxF "$MARK" "$ANGIE_SITE"; then
+        die "$ANGIE_SITE exists and is not managed by this script"
     fi
-    mkdir -p "$(dirname "$CADDYFILE")"
-    # TLS-ALPN on 443 alone gets the certificate: port 80 (HTTP-01) stays closed. Caddy replaces any
-    # client-sent X-Forwarded-For with the peer address, which Hermes trusts from loopback only.
-    cat > "$CADDYFILE" <<EOF
-$MARK
-$DOMAIN {
-	tls {
-		issuer acme {
-			disable_http_challenge
-		}
-	}
-	redir /panel /panel/ 308
-	handle_path /panel/* {
-		reverse_proxy 127.0.0.1:$DASH_PORT {
-			header_up X-Forwarded-Prefix /panel
-		}
-	}
-	handle {
-		reverse_proxy 127.0.0.1:$PORT
-	}
+    # TLS-ALPN on 443 alone gets the certificate: port 80 (HTTP-01) stays closed.
+    {
+        echo "$MARK"
+        cat <<EOF
+acme_client hermes https://acme-v02.api.letsencrypt.org/directory challenge=alpn;
+
+map \$http_upgrade \$hermes_connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 443 ssl;
+    server_name $DOMAIN;
+    acme hermes;
+    ssl_certificate \$acme_cert_hermes;
+    ssl_certificate_key \$acme_cert_key_hermes;
+
+    client_max_body_size 512m;
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+    proxy_send_timeout 1h;
+
+    location = /panel {
+        return 308 /panel/;
+    }
+    location /panel/ {
+        proxy_pass http://127.0.0.1:$DASH_PORT/;
+$(proxy_headers)
+        proxy_set_header X-Forwarded-Prefix /panel;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:$PORT;
+$(proxy_headers)
+    }
 }
 EOF
-    caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null 2>&1 || die "caddy rejected $CADDYFILE"
-    systemctl enable --quiet caddy
-    systemctl restart caddy
+    } > "$ANGIE_SITE.new"
+    mv "$ANGIE_SITE.new" "$ANGIE_SITE"
+    if ! angie -t -q; then
+        rm -f "$ANGIE_SITE"
+        die "angie rejected the site (angie -t above); removed $ANGIE_SITE"
+    fi
+    systemctl enable --quiet angie
+    if systemctl is-active --quiet angie; then systemctl reload angie; else systemctl start angie; fi
 }
 
 open_https() {
@@ -128,7 +167,7 @@ open_https() {
     fi
 }
 
-# The web dashboard as a user service of the Hermes user, on loopback behind Caddy.
+# The web dashboard as a user service of the Hermes user, on loopback behind Angie.
 dashboard_service() {
     local dir=$HHOME/.config/systemd/user env_path
     runuser -u "$HUSER" -- mkdir -p "$dir"
@@ -137,7 +176,7 @@ dashboard_service() {
     cat > "$dir/$DASH_UNIT" <<UNIT
 $MARK
 [Unit]
-Description=Hermes web dashboard (https://$DOMAIN/panel/ through Caddy)
+Description=Hermes web dashboard (https://$DOMAIN/panel/ through Angie)
 After=network-online.target hermes-gateway.service
 
 [Service]
@@ -230,7 +269,7 @@ apply() {
     vpn_json=$(printf '"%s",' "${VPN[@]}"); vpn_json="[${vpn_json%,}]"
     tg_url="https://$DOMAIN/auth/login?provider=telegram-mini-app"
 
-    install_caddy
+    install_angie
     say "Hermes settings (user $HUSER)"
     hermes_as config set webapp.enabled true >/dev/null
     hermes_as config set webapp.public_url "https://$DOMAIN" >/dev/null
@@ -244,11 +283,11 @@ apply() {
     loginctl enable-linger "$HUSER"
     user_systemctl restart hermes-gateway.service
     dashboard_service
-    say "Caddy and the firewall"
-    write_caddyfile
+    say "Angie and the firewall"
+    write_angie_site
     open_https
     say "Waiting for the certificate"
-    wait_for_https || die "https://$DOMAIN does not answer yet; check: journalctl -u caddy -n 50"
+    wait_for_https || die "https://$DOMAIN does not answer yet; check: journalctl -u angie -n 50 and /var/log/angie/error.log"
     say "Telegram menu button"
     menu_button "$TG_USER" "$tg_url"
 
@@ -264,7 +303,7 @@ EOF
 }
 
 status() {
-    echo "caddy:    $(systemctl is-active caddy 2>/dev/null || true)  $(sed -n '2s/ {$//p' "$CADDYFILE" 2>/dev/null)"
+    echo "angie:    $(systemctl is-active angie 2>/dev/null || true)  $(sed -n 's/^ *server_name \(.*\);/\1/p' "$ANGIE_SITE" 2>/dev/null)"
     echo "firewall: $(nft list set inet hermes_fw public_tcp 2>/dev/null | tr -d '\n\t' | sed -n 's/.*elements = {\([^}]*\)}.*/TCP open to everyone: \1/p')"
     echo "dashboard: $(user_systemctl is-active "$DASH_UNIT" 2>/dev/null || true)"
     for key in webapp.enabled webapp.public_url dashboard.public_url dashboard.auth_networks \
@@ -275,9 +314,10 @@ status() {
 }
 
 remove() {
-    if [ -f "$CADDYFILE" ] && grep -qxF "$MARK" "$CADDYFILE"; then
-        systemctl disable --now --quiet caddy || true
-        if [ -f "$CADDYFILE.before-hermes" ]; then mv "$CADDYFILE.before-hermes" "$CADDYFILE"; else rm -f "$CADDYFILE"; fi
+    # Angie stays installed and running: it may serve other sites.
+    if [ -f "$ANGIE_SITE" ] && grep -qxF "$MARK" "$ANGIE_SITE"; then
+        rm -f "$ANGIE_SITE"
+        systemctl reload angie || true
     fi
     if nft list table inet hermes_fw >/dev/null 2>&1; then "$HERE/harden-server.sh" public-port remove 443; fi
     if [ -f "$HHOME/.config/systemd/user/$DASH_UNIT" ] && grep -qxF "$MARK" "$HHOME/.config/systemd/user/$DASH_UNIT"; then
