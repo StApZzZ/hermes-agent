@@ -1,0 +1,5 @@
+name: codex-cli
+version: 1.0.0
+description: "Image generation through the signed-in Codex CLI (ChatGPT subscription): codex exec draws with its built-in image tool. No API key; credentials stay inside Codex CLI. Saves images to $HERMES_HOME/cache/generated/images/."
+author: Alexander Gomanov
+kind: backend

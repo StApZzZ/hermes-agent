@@ -189,6 +189,22 @@ accepts any `model` value (including nonexistent ids) and generates with its
 own server-managed engine, so a "selected" Flare or Sunburst tier would be a
 label with no effect. Pick the direct OpenAI API provider or FAL for 2.5.
 
+### Codex CLI: your ChatGPT subscription, no API key
+
+The `codex-cli` provider draws through the signed-in [Codex CLI](https://github.com/openai/codex):
+Hermes runs `codex exec` with the CLI's built-in image tool and copies the picture into
+`$HERMES_HOME/cache/generated/images/`. Credentials stay inside Codex CLI, as with the `codex-cli`
+model provider; the process gets a read-only sandbox, no shell tool and no web search, so it can only
+draw. Codex chooses the model and the exact size (the aspect ratio is a request), and one picture
+takes about 30–60 seconds of your subscription quota.
+
+```bash
+codex login                       # once, or: hermes auth add codex-cli
+hermes config set image_gen.provider codex-cli
+```
+
+In a messaging chat, `/settings` → **Create pictures** switches the same setting.
+
 ### Custom OpenAI-compatible image endpoint
 
 The **OpenAI** provider can point at any OpenAI-compatible `/v1/images/generations`
@@ -293,6 +309,7 @@ Two inputs drive the edit:
 | **Krea** (`Krea 3`) | ✓ | up to 4 | instruction-following edit of the pictures given (`image_urls`); local files are embedded in the request, up to 3 MB in total |
 | **Krea** (`Krea 2`) | ✓ | up to 10 | reference-guided generation (`image_style_references`); local files are embedded in the request, up to 3 MB in total |
 | **OpenAI (Codex auth)** | ✓ | up to 16 | `POST /backend-api/codex/images/edits` with inline `images[]` data URLs (remote URLs are fetched client-side) |
+| **Codex CLI** (ChatGPT subscription) | ✓ | up to 4 | `codex exec --image=<file>` with the CLI's own image tool |
 | **OpenRouter** (Image API models) | ✓ | up to 14–16 (per model) | `input_references` on `POST /images/generations`; chat-served models use `image_url` content parts (up to 3) |
 
 FAL models with an editing endpoint: `flux-2/klein/9b`, `flux-2-pro`,
