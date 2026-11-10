@@ -1,10 +1,13 @@
-"""``/settings`` in a chat: one menu over the per-chat settings commands, plus image recognition.
+"""``/settings`` in a chat: one menu over the per-chat settings commands, plus image recognition
+and the picture-creation backend.
 
 On adapters with inline pickers (Telegram) each menu button opens the existing picker or reply of
 that command (``/model``, ``/reasoning``, ...), so no setting gets a second implementation. The
 image-recognition mode (``agent.image_input_mode``) had no chat command; it is read from
 config.yaml on every inbound image, so changing it never touches a running agent or its prompt
-cache. Bound onto ``GatewayRunner`` through ``GatewaySlashCommandsMixin``.
+cache. The picture backend (``image_gen.provider``) shapes the tool set, which is built when a
+conversation starts, so a new choice applies from the next conversation. Bound onto ``GatewayRunner``
+through ``GatewaySlashCommandsMixin``.
 """
 
 from __future__ import annotations
@@ -17,11 +20,18 @@ from gateway.platforms.event import MessageEvent
 
 logger = logging.getLogger(__name__)
 
-# Menu item → the slash command that owns it ("images" is owned here).
-_MENU = (("model", "model"), ("reasoning", "reasoning"), ("fast", "fast"), ("images", None),
+# Menu item → the slash command that owns it ("images" and "pictures" are owned here).
+_MENU = (("model", "model"), ("reasoning", "reasoning"), ("fast", "fast"), ("images", None), ("pictures", None),
          ("voice", "voice"), ("personality", "personality"), ("approvals", "approvals"), ("status", "status"))
 _IMAGE_MODES = ("auto", "native", "text")
-_IMAGE_WORDS = frozenset({"images", "image", "vision", "изображения", "картинки"})
+_IMAGE_WORDS = frozenset({"images", "image", "vision", "изображения"})
+_PICTURE_WORDS = frozenset({"pictures", "draw", "generate", "картинки", "рисование"})
+
+
+def _current_picture_provider() -> str:
+    from gateway.run import _load_gateway_config
+
+    return str((_load_gateway_config().get("image_gen") or {}).get("provider") or "").strip()
 
 
 def _current_image_mode() -> str:
@@ -43,6 +53,10 @@ class GatewaySettingsCommandsMixin:
                 return self._apply_image_mode(args[1].lower())
             return await self._send_image_mode_picker(event) or t(
                 "gateway.settings.images_status", mode=self._image_mode_label(_current_image_mode()))
+        if args and args[0].lower() in _PICTURE_WORDS:
+            if len(args) > 1:
+                return self._apply_picture_provider(args[1].lower())
+            return await self._send_picture_provider_picker(event)
         session_key = self._session_key_for_source(event.source)
 
         async def _open(_chat_id: str, value: str) -> str:
@@ -64,6 +78,8 @@ class GatewaySettingsCommandsMixin:
         command = dict(_MENU).get(item)
         if item == "images":
             reply = await self._send_image_mode_picker(event)
+        elif item == "pictures":
+            reply = await self._send_picture_provider_picker(event)
         elif command:
             handler = self._command_handler_table((command,))[command]
             reply = await handler(dataclasses.replace(event, text="/" + command))
@@ -102,3 +118,37 @@ class GatewaySettingsCommandsMixin:
         if not self._save_gateway_config_key("agent.image_input_mode", mode):
             return t("gateway.settings.images_save_failed")
         return t("gateway.settings.images_saved", mode=self._image_mode_label(mode))
+
+    async def _send_picture_provider_picker(self, event: MessageEvent) -> str | None:
+        """Picker of the picture backends available here; a text reply without pickers or choices."""
+        from agent.image_gen_choice import available_choices
+
+        choices = available_choices()
+        if not choices:
+            return t("gateway.settings.pictures_none")
+        current = _current_picture_provider()
+        labels = {c.name: c.label for c in choices}
+
+        async def _apply(_chat_id: str, value: str) -> str:
+            return self._apply_picture_provider(value)
+
+        sent = await self._try_send_choice_picker(
+            event, self._session_key_for_source(event.source),
+            title=t("gateway.settings.pictures_title", provider=labels.get(current, current or "—")),
+            choices=[{"value": c.name, "label": c.label, "is_current": c.name == current} for c in choices],
+            on_choice_selected=_apply,
+        )
+        if sent:
+            return None
+        return t("gateway.settings.pictures_status", provider=labels.get(current, current or "—"),
+                 names=", ".join(c.name for c in choices))
+
+    def _apply_picture_provider(self, name: str) -> str:
+        from agent.image_gen_choice import available_choices
+
+        labels = {c.name: c.label for c in available_choices()}
+        if name not in labels:
+            return t("gateway.settings.pictures_unknown", arg=name, names=", ".join(labels) or "—")
+        if not self._save_gateway_config_key("image_gen.provider", name):
+            return t("gateway.settings.images_save_failed")
+        return t("gateway.settings.pictures_saved", provider=labels[name])

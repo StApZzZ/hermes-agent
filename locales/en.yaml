@@ -302,7 +302,7 @@ gateway:
     item_model: "🧠 Model"
     item_reasoning: "💭 Reasoning"
     item_fast: "⚡ Fast mode"
-    item_images: "🖼 Images"
+    item_images: "🖼 Recognize images"
     item_voice: "🔊 Voice"
     item_personality: "🎭 Personality"
     item_approvals: "✅ Approvals"
@@ -316,7 +316,13 @@ gateway:
     images_saved: "🖼 Image recognition: {mode}. It applies to the next picture you send."
     images_save_failed: "Could not save the image recognition mode: config.yaml is not writable."
     images_unknown: "Unknown mode: {arg}. Use auto, native or text."
-    text_menu: "⚙️ Settings\n/model — model and provider\n/reasoning — reasoning effort\n/fast — fast mode\n/settings images auto|native|text — image recognition (now: {mode})\n/voice — voice replies\n/personality — personality\n/approvals — command approvals\n/status — session status"
+    text_menu: "⚙️ Settings\n/model — model and provider\n/reasoning — reasoning effort\n/fast — fast mode\n/settings images auto|native|text — image recognition (now: {mode})\n/settings pictures <name> — who draws pictures\n/voice — voice replies\n/personality — personality\n/approvals — command approvals\n/status — session status"
+    item_pictures: "🎨 Create pictures"
+    pictures_title: "🎨 Picture creation — now: {provider}\nPick the backend that draws pictures. Applies from the next conversation (/new)."
+    pictures_status: "🎨 Picture creation: {provider}. Available: {names}. Change it: /settings pictures <name>"
+    pictures_saved: "🎨 Pictures are drawn by {provider} now. Applies from the next conversation (/new)."
+    pictures_unknown: "Unknown backend: {arg}. Available: {names}."
+    pictures_none: "No picture backend is available here. Install and sign in to Codex CLI (codex login), or set up one in `hermes tools`."
   reasoning:
     level_default: "medium (default)"
     level_disabled: "none (disabled)"
@@ -1701,7 +1707,7 @@ slash:
   space:
     description: "List spaces (work, personal, projects) or switch to one"
   settings:
-    description: "Settings menu: model, reasoning, image recognition, voice"
+    description: "Settings menu: model, reasoning, image recognition and creation, voice"
   sessions:
     description: "Browse and resume previous sessions"
   config:

@@ -190,8 +190,9 @@ COMMAND_REGISTRY: list[CommandDef] = [
     # Configuration
     CommandDef("config", "Show current configuration", "Configuration",
                cli_only=True),
-    CommandDef("settings", "Settings menu: model, reasoning, image recognition, voice", "Configuration",
-               gateway_only=True, args_hint="[images auto|native|text]", subcommands=("images",),
+    CommandDef("settings", "Settings menu: model, reasoning, image recognition and creation, voice", "Configuration",
+               gateway_only=True, args_hint="[images auto|native|text | pictures <name>]",
+               subcommands=("images", "pictures"),
                desktop="hidden"),
     CommandDef("model", "Switch model (session-scoped; --global to persist)", "Configuration",
                args_hint="[model|reset] [--provider name] [--reasoning level] [--global|--session] [--refresh]",

@@ -76,7 +76,7 @@ async def test_menu_lists_every_setting_and_opens_the_commands_own_picker(home):
     assert await runner._handle_settings_command(_event()) is None
     menu = adapter.calls[0]
     assert [c["value"] for c in menu["choices"]] == [
-        "model", "reasoning", "fast", "images", "voice", "personality", "approvals", "status"]
+        "model", "reasoning", "fast", "images", "pictures", "voice", "personality", "approvals", "status"]
 
     reply = await menu["on_choice_selected"]("67890", "reasoning")
     assert "Reasoning" in reply
@@ -200,16 +200,51 @@ async def test_settings_end_to_end_through_dispatch_and_telegram_buttons(home, m
                            chat_type="dm")
     assert await runner._handle_message(MessageEvent(text="/settings", source=source, message_id="1")) is None
     menu = sent.buttons()
-    assert [data for _label, data in menu] == [f"cp:{i}" for i in range(8)]
-    assert any("Images" in label for label, _data in menu)
+    assert [data for _label, data in menu] == [f"cp:{i}" for i in range(9)]
+    assert any("Recognize images" in label for label, _data in menu)
 
     tap, query = _tap(adapter, "cp:3")  # Images
     await tap
     # The menu message now names the opened item.
-    assert adapter._edit_result_text.await_args.args == (query, "⚙️ Settings → 🖼 Images")
+    assert adapter._edit_result_text.await_args.args == (query, "⚙️ Settings → 🖼 Recognize images")
     modes = sent.buttons()
     assert [label for label, _data in modes] == ["✓ Auto", "Native", "Description"]
 
     tap, _query = _tap(adapter, "cp:1")  # Native
     await tap
     assert _saved_mode(home) == ("native", "native")
+
+
+@pytest.fixture
+def picture_backends(monkeypatch):
+    from agent.image_gen_choice import ImageGenChoice
+
+    choices = [ImageGenChoice("codex-cli", "Codex CLI (ChatGPT subscription)")]
+    monkeypatch.setattr("agent.image_gen_choice.available_choices", lambda: list(choices))
+    return choices
+
+
+@pytest.mark.asyncio
+async def test_pictures_item_picks_an_available_backend_for_the_next_conversation(home, picture_backends):
+    adapter = _PickerAdapter()
+    runner = _runner(adapter)
+    await runner._handle_settings_command(_event())
+
+    await adapter.calls[0]["on_choice_selected"]("67890", "pictures")
+    picker = adapter.calls[1]
+    assert [(c["value"], c["is_current"]) for c in picker["choices"]] == [("codex-cli", False)]
+
+    reply = await picker["on_choice_selected"]("67890", "codex-cli")
+    assert "Codex CLI" in reply and "/new" in reply
+    assert gateway_run._load_gateway_config()["image_gen"]["provider"] == "codex-cli"
+
+
+@pytest.mark.asyncio
+async def test_pictures_refuses_backends_that_are_not_available(home, picture_backends, monkeypatch):
+    runner = _runner(_TextOnlyAdapter())
+    reply = await runner._handle_settings_command(_event("/settings pictures fal"))
+    assert "Unknown backend" in reply and "codex-cli" in reply
+    assert "image_gen" not in gateway_run._load_gateway_config()
+
+    picture_backends.clear()
+    assert "Codex CLI" in await runner._handle_settings_command(_event("/settings pictures"))  # the install hint

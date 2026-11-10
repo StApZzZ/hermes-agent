@@ -270,7 +270,7 @@ The messaging gateway supports the following built-in commands inside Telegram, 
 | `/whoami` | Show your slash command access level (admin / user). |
 | `/space [name [agent] \| off]` | List [spaces](../user-guide/spaces.md), or run your messages in this chat under a space's agent (its own memory and conversation). `/space off` returns to the chat's default agent. Needs a multiplexed gateway. |
 | `/insights [days]` | Show usage analytics. |
-| `/settings [images auto\|native\|text]` | Settings menu: buttons for model, reasoning, fast mode, image recognition, voice, personality, approvals and status, each opening that command's own picker (text list on platforms without buttons). `images` sets `agent.image_input_mode` for the next picture. |
+| `/settings [images auto\|native\|text \| pictures <name>]` | Settings menu: buttons for model, reasoning, fast mode, image recognition, picture creation, voice, personality, approvals and status, each opening that command's own picker (text list on platforms without buttons). `images` sets `agent.image_input_mode` for the next picture; `pictures` picks the `image_gen.provider` among the backends available here (from the next conversation). |
 | `/reasoning [level\|show\|hide\|full\|clamp] [--global]` | Change reasoning effort (levels up to `max` / `ultra`) or toggle reasoning display (`full` / `clamp` included). `--global` persists to config. |
 | `/voice [on\|off\|tts\|join\|channel\|leave\|status]` | Control spoken replies in chat. `join`/`channel`/`leave` manage Discord voice-channel mode. |
 | `/rollback [number]` | List or restore filesystem checkpoints. |

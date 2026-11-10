@@ -298,7 +298,7 @@ gateway:
     item_model: "🧠 Модель"
     item_reasoning: "💭 Рассуждение"
     item_fast: "⚡ Быстрый режим"
-    item_images: "🖼 Изображения"
+    item_images: "🖼 Распознавание"
     item_voice: "🔊 Голос"
     item_personality: "🎭 Личность"
     item_approvals: "✅ Подтверждения"
@@ -312,7 +312,13 @@ gateway:
     images_saved: "🖼 Распознавание изображений: {mode}. Действует со следующей картинки."
     images_save_failed: "Не удалось сохранить режим распознавания: config.yaml недоступен для записи."
     images_unknown: "Неизвестный режим: {arg}. Доступны auto, native и text."
-    text_menu: "⚙️ Настройки\n/model — модель и провайдер\n/reasoning — глубина рассуждения\n/fast — быстрый режим\n/settings images auto|native|text — распознавание изображений (сейчас: {mode})\n/voice — голосовые ответы\n/personality — личность\n/approvals — подтверждение команд\n/status — состояние сеанса"
+    text_menu: "⚙️ Настройки\n/model — модель и провайдер\n/reasoning — глубина рассуждения\n/fast — быстрый режим\n/settings images auto|native|text — распознавание изображений (сейчас: {mode})\n/settings pictures <имя> — кто рисует картинки\n/voice — голосовые ответы\n/personality — личность\n/approvals — подтверждение команд\n/status — состояние сеанса"
+    item_pictures: "🎨 Рисование"
+    pictures_title: "🎨 Создание картинок — сейчас: {provider}\nВыберите, кто рисует картинки. Действует с нового разговора (/new)."
+    pictures_status: "🎨 Создание картинок: {provider}. Доступно: {names}. Изменить: /settings pictures <имя>"
+    pictures_saved: "🎨 Теперь картинки рисует {provider}. Действует с нового разговора (/new)."
+    pictures_unknown: "Неизвестный вариант: {arg}. Доступно: {names}."
+    pictures_none: "Здесь нет доступного способа рисовать картинки. Установите Codex CLI и войдите (codex login) или настройте генерацию в `hermes tools`."
   reasoning:
     level_default: "medium (по умолчанию)"
     level_disabled: "none (отключено)"
@@ -1630,7 +1636,7 @@ slash:
   space:
     description: "Показать пространства (работа, личное, проекты) или переключиться"
   settings:
-    description: "Меню настроек: модель, рассуждение, распознавание изображений, голос"
+    description: "Меню настроек: модель, рассуждение, распознавание и рисование картинок, голос"
   sessions:
     description: "Просмотреть и возобновить предыдущие сеансы"
   config:

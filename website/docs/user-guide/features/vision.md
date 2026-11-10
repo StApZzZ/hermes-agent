@@ -217,7 +217,7 @@ This is the knob to reach for when a backend accepts text but rejects native ima
 
 Which auxiliary model handles the text-description path is configurable under `auxiliary.vision` — see [Auxiliary Models](../configuration.md#auxiliary-models).
 
-In a messaging chat, `/settings` → **Images** (or `/settings images auto|native|text`) changes the mode without editing the file; it applies from the next picture. The dashboard has the same switch on its **Images** page.
+In a messaging chat, `/settings` → **Recognize images** (or `/settings images auto|native|text`) changes the mode without editing the file; it applies from the next picture. The dashboard has the same switch on its **Images** page.
 
 ### Subscription CLIs (`claude-cli`, `codex-cli`)
 
