@@ -20,6 +20,8 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+## 2026.11.10.2
+
 ### Новое
 
 - **Рисование картинок по подписке ChatGPT.** Новый способ `codex-cli` для инструмента `image_generate`:
