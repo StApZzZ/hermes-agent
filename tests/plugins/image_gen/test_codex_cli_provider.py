@@ -34,6 +34,10 @@ print(json.dumps({{"type": "thread.started", "thread_id": "thread-1"}}))
 if mode == "limit":
     print(json.dumps({{"type": "turn.failed", "error": {{"message": "You've hit your usage limit."}}}}))
     sys.exit(1)
+if mode == "refuse":
+    print(json.dumps({{"type": "item.completed", "item": {{"type": "agent_message", "text": "I can't create images of that real person."}}}}))
+    print(json.dumps({{"type": "turn.completed"}}))
+    sys.exit(0)
 if mode == "draw":
     folder = Path(os.environ["CODEX_HOME"]) / "generated_images" / "thread-1"
     folder.mkdir(parents=True)
@@ -114,3 +118,10 @@ def test_missing_cli_and_empty_prompt(monkeypatch, tmp_path):
     assert provider.is_available() is False
     assert provider.generate(prompt="a cat")["error_type"] == "missing_dependency"
     assert provider.generate(prompt="  ")["error_type"] == "invalid_argument"
+
+
+def test_a_refusal_is_reported_in_codexs_own_words(fake_codex):
+    run, _home, _codex_home = fake_codex
+    result, _seen = run("refuse", prompt="a real person in handcuffs")
+    assert result["success"] is False and result["error_type"] == "refused"
+    assert "real person" in result["error"] and "login" not in result["error"]

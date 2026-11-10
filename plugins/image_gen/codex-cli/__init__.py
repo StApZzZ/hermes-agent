@@ -110,6 +110,20 @@ def _reported_error(stdout: str) -> Optional[str]:
     return None
 
 
+def _last_message(stdout: str) -> str:
+    """Codex's own last reply (a refusal explains itself there), minus the DONE marker we asked for."""
+    text = ""
+    for line in stdout.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        item = row.get("item") if isinstance(row, dict) else None
+        if isinstance(item, dict) and item.get("type") == "agent_message" and str(item.get("text") or "").strip():
+            text = str(item["text"]).strip()
+    return "" if text.upper() == "DONE" else " ".join(text.split())[:400]
+
+
 def _codex_home(env: dict[str, str]) -> Path:
     home = env.get("CODEX_HOME", "").strip()
     return Path(home) if home else Path(env.get("HOME") or Path.home()) / ".codex"
@@ -195,6 +209,9 @@ class CodexCLIImageGenProvider(StaticImageGenProvider):
         folder = _codex_home(env) / "generated_images" / thread if thread else None
         images = sorted(p for p in folder.iterdir() if p.suffix.lower() in _IMAGE_SUFFIXES) if folder and folder.is_dir() else []
         if not images:
+            said = _last_message(stdout)
+            if said:  # usually a content-policy refusal: pass Codex's reason on instead of guessing
+                return fail(f"Codex CLI did not draw the picture: {said}", "refused")
             detail = f"exit code {code}" if code else "no image was produced"
             return fail(f"Codex CLI returned no image ({detail}); check `codex login status`.", "empty_response")
         try:
