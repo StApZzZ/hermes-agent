@@ -39,7 +39,8 @@ def cli_argv(engine: str, command: str, args: list[str], model: str, *, policy_p
                                  if stream_json else ("--output-format", "json")), "--no-session-persistence", "--restricted",
                    "--tools", "", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
                    "--disallowedTools", "mcp__*", "--disable-slash-commands",
-                   "--settings", '{"forceLoginMethod":"claudeai"}'],
+                   # A safeguard flag switches to another Claude model at once instead of pausing the run.
+                   "--settings", '{"forceLoginMethod":"claudeai","switchModelsOnFlag":true}'],
         "gemini": ["--output-format", "json", "--policy", policy_path],
     }
     if engine not in tails:

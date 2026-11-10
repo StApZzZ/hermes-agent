@@ -215,3 +215,12 @@ def test_claude_images_sit_right_after_their_markers():
     assert [b["type"] for b in later] == ["text", "image", "text", "image", "text"]
     assert later[0]["text"].endswith("[attached image #1]") and later[2]["text"].endswith("[attached image #2]")
     assert later[:2] == first[:2]
+
+
+def test_claude_switches_models_on_a_safeguard_flag_instead_of_pausing(client_factory):
+    """A paused headless run held a Telegram turn for 14.5 minutes before erroring."""
+    client, capture = client_factory("claude")
+    client.chat.completions.create(messages=[{"role":"user","content":"hi"}])
+    argv = json.loads(capture.read_text())["argv"]
+    settings = json.loads(argv[argv.index("--settings") + 1])
+    assert settings == {"forceLoginMethod": "claudeai", "switchModelsOnFlag": True}
