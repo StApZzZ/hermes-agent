@@ -312,13 +312,14 @@ def _ws_auth_reason(ws: WebSocket, *, allow_internal: bool = False,
         if token:
             from hermes_cli import webapp_sign_in
             from hermes_cli.dashboard_auth.base import ProviderError
-            from hermes_cli.dashboard_auth.middleware import _verify_access_token
+            from hermes_cli.dashboard_auth.middleware import _network_allowed, _verify_access_token
 
             view = _ws_request_view(ws, app)
             try:
                 # On the gateway's Webapp a browser login's tokens work only as its cookies, which
                 # sign-out ends; only a token this listener gave a native app's sign-in works alone.
-                session = (_verify_access_token(view, access_token=token, audit=False)
+                # A provider limited to dashboard.auth_networks opens no socket from another address.
+                session = (_network_allowed(view, _verify_access_token(view, access_token=token, audit=False))
                            if webapp_sign_in.access_token_works_alone(view, token) else None)
             except ProviderError as exc:
                 # All providers unreachable (IDP outage) — reject without

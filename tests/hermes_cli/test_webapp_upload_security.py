@@ -160,7 +160,8 @@ def test_cookie_unsafe_methods_and_logout_but_not_auth_bootstrap(upload_app):
                 assert response.status_code == 405  # Authorized; method isn't routed.
             response = await client.get("/api/auth/me")
             assert response.status_code == 200
-            for path, expected in (("/auth/callback", 405), ("/auth/password-login", 422)):
+            # The callback's form post (a provider's own sign-in page) answers 415 to a body that is no form.
+            for path, expected in (("/auth/callback", 415), ("/auth/password-login", 422)):
                 response = await client.post(path, headers={"Origin": "null"})
                 assert response.status_code == expected  # Bootstrap, not CSRF.
             response = await client.post(

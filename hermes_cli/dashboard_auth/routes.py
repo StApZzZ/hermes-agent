@@ -23,7 +23,7 @@ import threading
 import time
 from collections import OrderedDict, deque
 from typing import Any, Deque, Dict
-from urllib.parse import quote, unquote, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -33,7 +33,7 @@ from starlette.concurrency import run_in_threadpool
 from hermes_cli import webapp_sign_in
 from hermes_cli.dashboard_auth import (
     get_provider, list_interactive_providers, list_providers, list_session_providers,
-    native_flow)
+    native_flow, networks)
 from hermes_cli.dashboard_auth import prefix as _prefix_mod
 from hermes_cli.dashboard_auth.audit import AuditEvent, audit_log
 from hermes_cli.dashboard_auth.base import (
@@ -191,12 +191,34 @@ def _start_upstream_login(request: Request, p, *, audit_failure: bool, extra_pkc
         if audit_failure:
             _login_failure(request, p.name, "provider_unreachable")
         raise _http(503, f"Provider unreachable: {e}")
-    resp = RedirectResponse(url=ls.redirect_url, status_code=302)
+    resp = (_sign_in_page(ls.page_html) if ls.page_html
+            else RedirectResponse(url=ls.redirect_url, status_code=302))
     pkce = _provider_pkce_segments(ls.cookie_payload)
     pkce.setdefault("provider", p.name)
     pkce.update(extra_pkce)
     _set_pkce(resp, request, pkce)
     return resp
+
+
+def _sign_in_page(page_html: str) -> HTMLResponse:
+    """A provider's own sign-in page (``LoginStart.page_html``), under a policy that runs only its
+    inline scripts and lets its forms post only back to this origin (the callback)."""
+    from hermes_cli.webapp_page_policy import inline_script_hashes
+
+    scripts = " ".join(inline_script_hashes(page_html)) or "'none'"
+    policy = "; ".join((
+        "default-src 'none'", f"script-src {scripts}", "style-src 'unsafe-inline'", "img-src data:",
+        "form-action 'self'", "base-uri 'none'", "frame-ancestors 'none'"))
+    return HTMLResponse(page_html, headers={
+        **_NO_STORE, "Content-Security-Policy": policy, "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer"})
+
+
+def _refuse_network(request: Request, provider: str) -> None:
+    """403 before any sign-in step when *provider* does not accept this address."""
+    if not networks.request_allowed(request, provider):
+        _login_failure(request, provider, networks.NETWORK_NOT_ALLOWED)
+        raise _http(403, "Sign-in from this network is not allowed.")
 
 
 # --- Public: login page + provider list ------------------------------------
@@ -205,12 +227,17 @@ def _start_upstream_login(request: Request, p, *, audit_failure: bool, extra_pkc
 async def login_page(request: Request) -> HTMLResponse:
     # ``next=`` is set by the gate's redirect but /login is reachable directly.
     next_path = _validate_post_login_target(request.query_params.get("next", ""))
+    interactive = list_interactive_providers()
+    allowed = networks.providers_for(request, interactive)
+    if interactive and not allowed:
+        return networks.refused_response(request, interactive[0].name)
     return HTMLResponse(
-        render_login_html(next_path=next_path, prefix=_prefix(request)), headers=_NO_STORE)
+        render_login_html(next_path=next_path, prefix=_prefix(request), interactive=allowed),
+        headers=_NO_STORE)
 
 
 @router.get("/api/auth/providers", name="auth_providers")
-async def api_auth_providers() -> Any:
+async def api_auth_providers(request: Request) -> Any:
     # Only interactive providers are sign-in options; fail closed on zero
     # session providers. A deployment authenticated solely by a provisioned
     # credential (interactive_login False — the session-token provider) answers
@@ -221,7 +248,7 @@ async def api_auth_providers() -> Any:
     return {"providers": [
         {"name": p.name, "display_name": p.display_name,
          "supports_password": bool(getattr(p, "supports_password", False))}
-        for p in list_interactive_providers()]}
+        for p in networks.providers_for(request, list_interactive_providers())]}
 
 
 # --- Public: OAuth round trip ----------------------------------------------
@@ -237,6 +264,7 @@ async def auth_login(request: Request, provider: str, next: str = ""):
         # Verifies credentials but has no sign-in flow (the session-token provider):
         # never 500 inside start_login — answer the same 404 an unknown provider gets.
         raise _http(404, f"Provider has no interactive login: {provider!r}")
+    _refuse_network(request, p.name)
     safe_next = _validate_post_login_target(next)
     if getattr(p, "supports_password", False):
         login_url = f"{_prefix(request)}/login"
@@ -292,13 +320,14 @@ def _validate_loopback_redirect_uri(raw: str) -> str:
     return urlunparse(parsed._replace(path=parsed.path or "/"))
 
 
-def _select_native_provider(provider: str):
+def _select_native_provider(request: Request, provider: str):
     """Resolve the provider for a native authorize request. An empty ``provider`` auto-selects
-    the ONLY interactive session provider (password providers included — native sign-in brokers
-    them via ``/login``); with several the caller renders a chooser instead of guessing."""
+    the ONLY interactive session provider this address may use (password providers included —
+    native sign-in brokers them via ``/login``); with several the caller renders a chooser
+    instead of guessing."""
     if provider:
         return get_provider(provider)
-    candidates = list_interactive_providers()
+    candidates = networks.providers_for(request, list_interactive_providers())
     return candidates[0] if len(candidates) == 1 else None
 
 
@@ -315,9 +344,9 @@ async def auth_native_authorize(
     if not code_challenge:
         raise _http(400, "code_challenge required")
     redirect_uri = _validate_loopback_redirect_uri(redirect_uri)
-    p = _select_native_provider(provider)
+    p = _select_native_provider(request, provider)
     if p is None and not provider:
-        candidates = list_interactive_providers()
+        candidates = networks.providers_for(request, list_interactive_providers())
         if len(candidates) > 1:
             # Render the chooser BEFORE allocating broker state or setting a cookie: every link
             # re-enters this same validated route with an explicit provider.
@@ -336,6 +365,7 @@ async def auth_native_authorize(
         # Checked BEFORE register_pending: a provisioned-credential provider (session-token)
         # has only a start_login stub, so it must never reach the upstream round trip.
         raise _http(400, f"Provider does not support native login: {p.name!r}")
+    _refuse_network(request, p.name)
     try:
         broker_state = native_flow.register_pending(
             code_challenge=code_challenge, redirect_uri=redirect_uri, client_state=state,
@@ -357,6 +387,28 @@ async def auth_native_authorize(
 async def auth_callback(
     request: Request, code: str = "", state: str = "", error: str = "",
     error_description: str = ""):
+    return await _finish_callback(request, code=code, state=state, error=error,
+                                  error_description=error_description, status_code=302)
+
+
+@router.post("/auth/callback", name="auth_callback_form_post")
+async def auth_callback_form_post(request: Request):
+    """The callback as a form post (OAuth ``response_mode=form_post``): a provider's own sign-in
+    page (``LoginStart.page_html``) posts a credential that must stay out of URLs and logs."""
+    if request.headers.get("content-type", "").split(";")[0].strip() != "application/x-www-form-urlencoded":
+        raise _http(415, "Expected a form post")
+    fields = parse_qs((await request.body()).decode("utf-8", "replace"), keep_blank_values=True)
+
+    def field(name: str) -> str:
+        return fields.get(name, [""])[0]
+
+    # 303: the browser follows a form post's redirect with a GET.
+    return await _finish_callback(request, code=field("code"), state=field("state"), error=field("error"),
+                                  error_description=field("error_description"), status_code=303)
+
+
+async def _finish_callback(request: Request, *, code: str, state: str, error: str,
+                           error_description: str, status_code: int):
     pkce_raw = read_pkce_cookie(request, webapp_sign_in.cookie_gateway(request))
     if not pkce_raw:
         _audit(request, AuditEvent.LOGIN_FAILURE, reason="missing_pkce_cookie")
@@ -374,6 +426,7 @@ async def auth_callback(
     if not state or state != parts.get("state", ""):
         _login_failure(request, provider_name, "state_mismatch")
         raise _http(400, "OAuth state mismatch (CSRF check failed)")
+    _refuse_network(request, provider_name)
     try:
         session = p.complete_login(
             code=code, state=state, code_verifier=parts.get("verifier", ""),
@@ -387,7 +440,7 @@ async def auth_callback(
     target, native = _complete_login(
         request, provider_name, session, broker_state=parts.get("broker", ""),
         next_raw=parts.get("next", ""))
-    resp = RedirectResponse(url=target, status_code=302)
+    resp = RedirectResponse(url=target, status_code=status_code)
     if not native:
         _set_session(resp, request, session)
     _clear_pkce(resp, request)
@@ -478,6 +531,7 @@ async def auth_password_login(request: Request, body: _PasswordLoginBody):
     if p is None or not getattr(p, "supports_password", False):
         _login_failure(request, body.provider, "unknown_password_provider")
         raise _http(404, "Unknown provider")
+    _refuse_network(request, p.name)
     # The native broker handle also records WHICH provider the flow was started for. Enforce
     # equality BEFORE verifying credentials so a flow started for provider A cannot be completed
     # with provider B's credentials.
@@ -602,6 +656,7 @@ async def auth_native_token(request: Request, body: _NativeTokenBody):
     except native_flow.CodeInvalid:
         _audit(request, AuditEvent.NATIVE_TOKEN_FAILURE, reason="invalid_code_or_pkce")
         raise _http(400, "Invalid or expired authorization code.")
+    _refuse_network(request, session.provider)
     webapp_sign_in.gave_native_app(request, session)
     _audit(request, AuditEvent.NATIVE_TOKEN_SUCCESS, provider=session.provider,
            user_id=session.user_id)
@@ -621,6 +676,9 @@ async def auth_native_refresh(request: Request, body: _NativeRefreshBody):
     this listener gave a native app's sign-in (``webapp_sign_in.token_works_alone``)."""
     if not body.refresh_token:
         raise _http(400, "refresh_token required")
+    if body.provider:
+        # Before the rotation: a provider with reuse detection would revoke a rotated token we then drop.
+        _refuse_network(request, body.provider)
     if not webapp_sign_in.token_works_alone(request, body.refresh_token):
         _audit(request, AuditEvent.REFRESH_FAILURE, reason="not_a_native_sign_in")
         return JSONResponse(
@@ -636,6 +694,7 @@ async def auth_native_refresh(request: Request, body: _NativeRefreshBody):
         raise _http(503, f"Auth provider {str(e)!r} unreachable")
     if refreshed is not None:
         session = refreshed[0]
+        _refuse_network(request, session.provider)
         webapp_sign_in.gave_native_app(request, session)
         _audit(request, AuditEvent.REFRESH_SUCCESS, provider=session.provider,
                user_id=session.user_id)

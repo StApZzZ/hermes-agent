@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import plugins.dashboard_auth._shared as shared
 import plugins.dashboard_auth.basic as basic_plugin
 from hermes_cli.dashboard_auth import (
     InvalidCredentialsError,
@@ -121,7 +122,9 @@ class TestProvider:
     def test_sessions_minted_in_one_second_get_their_own_tokens(self, basic, monkeypatch):
         # A listener that drops a session's tokens (the Webapp's sign-out) must not see them come
         # back from a later login or refresh, even one in the same second.
-        monkeypatch.setattr(basic, "time", SimpleNamespace(time=lambda: 1_700_000_000))
+        frozen = SimpleNamespace(time=lambda: 1_700_000_000)
+        monkeypatch.setattr(basic, "time", frozen)  # minting
+        monkeypatch.setattr(shared, "time", frozen)  # expiry check (unsign_token)
         p = self._make(basic)
         first = p.complete_password_login(username="admin", password="hunter2")
         second = p.complete_password_login(username="admin", password="hunter2")

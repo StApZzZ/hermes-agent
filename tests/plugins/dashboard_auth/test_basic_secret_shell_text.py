@@ -15,6 +15,7 @@ import secrets
 import pytest
 
 from plugins.dashboard_auth import basic
+from plugins.dashboard_auth._shared import sign_token
 
 LITERAL = "$(openssl rand -base64 32)"
 
@@ -77,7 +78,7 @@ def test_token_signed_with_the_literal_text_is_rejected(monkeypatch):
     monkeypatch.setenv("HERMES_DASHBOARD_BASIC_AUTH_SECRET", LITERAL)
     provider = basic.BasicAuthProvider(**basic._settings())
 
-    forged = basic._sign(
+    forged = sign_token(
         {"sub": "admin", "kind": "access", "exp": 2**31 - 1, "jti": "x"}, LITERAL.encode("utf-8"))
     assert provider.verify_session(access_token=forged) is None
 

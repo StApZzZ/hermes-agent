@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 from hermes_cli import webapp_sign_in
-from hermes_cli.dashboard_auth import list_interactive_providers, list_session_providers
+from hermes_cli.dashboard_auth import list_interactive_providers, list_session_providers, networks
 from hermes_cli.dashboard_auth.audit import AuditEvent, audit_log
 from hermes_cli.dashboard_auth.base import ProviderError
 from hermes_cli.dashboard_auth.cookies import (
@@ -140,7 +140,7 @@ def _auto_sso_response(request: Request) -> Response | None:
         resp = _unauth_response(request, reason="no_cookie")
         clear_sso_attempt_cookie(resp, prefix=prefix_from_request(request), gateway=gateway)
         return resp
-    providers = list_interactive_providers()
+    providers = networks.providers_for(request, list_interactive_providers())
     if len(providers) != 1 or getattr(providers[0], "supports_password", False):
         return None
     provider = providers[0]
@@ -208,23 +208,37 @@ def peek_session(request: Request):
         gateway = webapp_sign_in.cookie_gateway(request)
         access_token, _rt = read_session_cookies(request, gateway)
         if not access_token and not _rt:
-            return _session_token_header_session(request)
+            return _network_allowed(request, _session_token_header_session(request))
         if not access_token or (webapp_sign_in.applies(request) and not webapp_sign_in.check(request)):
             return None
         provider_hint = read_session_provider(request, gateway)
     try:
-        return _verify_access_token(
-            request, access_token=access_token, provider_hint=provider_hint, audit=False)
+        return _network_allowed(request, _verify_access_token(
+            request, access_token=access_token, provider_hint=provider_hint, audit=False))
     except ProviderError:
         return None
+
+
+def _network_allowed(request: Request, session):
+    """*session*, or ``None`` when its provider does not accept this request's address."""
+    return session if session is None or networks.request_allowed(request, session.provider) else None
+
+
+async def _serve_session(request: Request, call_next, session) -> Response:
+    """Serve the request as *session*, or the 403 when its provider does not accept this address
+    (``dashboard.auth_networks``): the session stays, and works again from an accepted address."""
+    if not networks.request_allowed(request, session.provider):
+        return networks.refused_response(request, session.provider)
+    request.state.session = session
+    return await call_next(request)
 
 
 async def _serve_refreshed(request: Request, call_next, new_session, provider: str) -> Response:
     """Serve the request under a just-rotated session and write the rotated cookies back. Writing
     the ROTATED RT is mandatory: Portal runs reuse detection, so replaying the stale RT would
     revoke the session."""
-    request.state.session = new_session
-    response = await call_next(request)
+    # Written on the network refusal too: the provider has already rotated the RT.
+    response = await _serve_session(request, call_next, new_session)
     set_session_cookies(
         response, access_token=new_session.access_token, refresh_token=new_session.refresh_token,
         access_token_expires_in=_expires_in_seconds(new_session), use_https=detect_https(request),
@@ -273,8 +287,7 @@ async def _serve_bearer(request: Request, call_next: Callable[[Request], Awaitab
     except ProviderError as e:
         return unreachable_response(str(e))
     if bearer_session is not None:
-        request.state.session = bearer_session
-        return await call_next(request)
+        return await _serve_session(request, call_next, bearer_session)
     return _unauth_response(request, reason="invalid_or_expired_session")
 
 
@@ -321,8 +334,7 @@ async def gated_auth_middleware(
         # session is served exactly as before; anything else gets main's no-cookie handling.
         header_session = _session_token_header_session(request)
         if header_session is not None:
-            request.state.session = header_session
-            return await call_next(request)
+            return await _serve_session(request, call_next, header_session)
         # No session at all: try the silent portal bounce before /login.
         auto = _auto_sso_response(request)
         return auto if auto is not None else _unauth_response(request, reason="no_cookie")
@@ -351,8 +363,7 @@ async def gated_auth_middleware(
             return _session_expired_response(request)
         return await _serve_refreshed(request, call_next, *refreshed)
 
-    request.state.session = session
-    response = await call_next(request)
+    response = await _serve_session(request, call_next, session)
     if not provider_hint and session.provider:
         set_session_provider_cookie(
             response, provider=session.provider, use_https=detect_https(request),

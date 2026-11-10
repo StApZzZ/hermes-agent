@@ -31,6 +31,11 @@ class _ScriptHashes(HTMLParser):
             self.script = None
 
 
+def inline_script_hashes(html: str) -> list[str]:
+    """CSP ``'sha256-…'`` sources for every inline script in *html*."""
+    return _ScriptHashes(html).hashes
+
+
 def page_headers(request: Request, html: str, headers: dict) -> dict:
     """Only gateway-served Webapp HTML gets this policy; native Desktop is not served here."""
     if getattr(request.app.state, "ui_surface", None) != "webapp":

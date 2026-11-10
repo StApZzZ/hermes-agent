@@ -38,6 +38,10 @@ class LoginStart:
     (HttpOnly, Secure + ``SameSite=None`` over HTTPS, TTL <= 10 min; see ``set_pkce_cookie``)."""
     redirect_url: str
     cookie_payload: dict[str, str]
+    #: A sign-in page the provider renders itself, served instead of the redirect, for a sign-in that
+    #: happens in the browser (a credential the hosting app hands the page). Its inline scripts run
+    #: under a hash-pinned CSP, and it finishes by form-posting ``code`` + ``state`` to the callback.
+    page_html: str = ""
 
 
 class ProviderError(Exception):

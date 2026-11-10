@@ -1,0 +1,7 @@
+name: telegram-mini-app
+version: 1.0.0
+description: "Dashboard auth provider — sign-in from a Telegram Mini App. Opened from your bot (its menu button), the dashboard or Webapp receives Telegram's signed launch data; the provider checks its HMAC with the bot token (TELEGRAM_BOT_TOKEN) and admits only the Telegram user ids in dashboard.telegram_mini_app.allowed_users. Sessions are stateless HMAC-signed tokens. Activates when allowed_users is set and the bot token is available."
+author: StApZzZ
+kind: backend
+requires_env:
+  - TELEGRAM_BOT_TOKEN

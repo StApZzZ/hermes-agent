@@ -860,6 +860,46 @@ curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'
 
 `basic` is just one implementation of an extension point. Any plugin can register a password provider: set `supports_password = True` on your `DashboardAuthProvider` subclass and implement `complete_password_login(*, username, password) -> Session` (raise `InvalidCredentialsError` on rejection, `ProviderError` if your backing store is down). The OAuth `start_login` / `complete_login` methods can be left as `NotImplementedError` stubs for a pure-password provider. This is the path for LDAP-bind, a credentials database, or any other non-redirect auth scheme — the framework handles the form, the route, the cookies, and refresh for you.
 
+### Limit sign-in to networks (`dashboard.auth_networks`)
+
+`dashboard.auth_networks` maps a provider name to the IP addresses and CIDR networks its sign-in **and its sessions** are accepted from. The usual shape: password sign-in only from your VPN exit addresses, while another provider (such as the [Telegram Mini App](#telegram-mini-app-provider)) works from anywhere.
+
+```yaml
+dashboard:
+  auth_networks:
+    basic: [198.51.100.7, 203.0.113.0/24, "2001:db8::/32"]
+```
+
+- A provider the map does not name is accepted from any address. A named provider whose list holds nothing valid is accepted from **no** address, so a typo narrows access and never widens it.
+- From another address the provider is not offered on `/login` or `/api/auth/providers`, its sign-in routes answer `403`, and a session it issued gets `403 network_not_allowed` (the session itself stays, and works again from an accepted address). When no provider accepts the address, `/login` is a `403` page.
+- The client address is the connection's peer. Behind a reverse proxy, uvicorn takes it from `X-Forwarded-For` only when the proxy is loopback or in `dashboard.trusted_proxies`, so the proxy must set that header (Caddy does by default; nginx with `proxy_set_header X-Forwarded-For $remote_addr`). A proxy that does not makes every client look like the proxy, which a list without its address refuses.
+- The map is read on each check: editing it needs no restart.
+
+The gateway-served [Webapp](../desktop.md) uses the same sign-in, so the same map applies there.
+
+### Telegram Mini App provider
+
+The bundled `plugins/dashboard_auth/telegram_mini_app` plugin signs in from a [Telegram Mini App](https://core.telegram.org/bots/webapps): the dashboard or Webapp opened from your bot's menu button, inside the Telegram client. Telegram hands the page signed launch data; the provider checks its HMAC with the bot's token (`TELEGRAM_BOT_TOKEN`, the Telegram gateway's secret), refuses data older than a day, and admits only the Telegram user ids you list:
+
+```yaml
+dashboard:
+  telegram_mini_app:
+    allowed_users: [123456789]   # your numeric Telegram user id
+```
+
+The provider registers once `allowed_users` is set and the bot token is available. Point the bot's menu button for your chat at the sign-in URL, which must be public HTTPS (a Telegram requirement):
+
+```bash
+curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setChatMenuButton" \
+  -H 'Content-Type: application/json' \
+  -d '{"chat_id": 123456789, "menu_button": {"type": "web_app", "text": "Hermes",
+       "web_app": {"url": "https://hermes.example.com/auth/login?provider=telegram-mini-app"}}}'
+```
+
+Opened anywhere but inside Telegram, the page only says so: there is no launch data to sign in with. Sessions are stateless tokens keyed from the bot token: they survive restarts, end when the bot token changes, and end at once for an id you remove from `allowed_users`. The Mini App runs in the Telegram apps (phone and desktop); Telegram Web embeds Mini Apps in a frame, which the dashboard refuses.
+
+For plugin authors, this provider uses a general extension: `start_login` may return `LoginStart(page_html=...)`, a sign-in page the route serves instead of a redirect (under a CSP that runs only that page's own inline scripts), which finishes by form-posting `code` and `state` to `POST /auth/callback` (OAuth's `form_post` response mode). Use it for a sign-in that happens in the browser and whose credential must stay out of URLs and logs.
+
 ### Deployment session-token provider (token-only deployments)
 
 The bundled `plugins/dashboard_auth/session_token` plugin makes the **deployment session token** (`HERMES_DASHBOARD_SESSION_TOKEN`) a first-class gated-mode credential. This is the shape secret-managed deployments already provision — a single shared token (nix/agenix hands it over as a decrypted file; the Nix modules set `HERMES_DASHBOARD_SESSION_TOKEN=file:<path>` from `backend.sessionTokenFile`) that Hermes Desktop's remote-gateway **"Session token"** field presents. Without this provider, a non-loopback bind with only a provisioned token hit the fail-closed gate and pushed the operator into basic-auth or OAuth credentials the deployment never asked for.

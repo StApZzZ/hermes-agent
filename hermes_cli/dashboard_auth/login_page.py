@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import html
 from urllib.parse import quote, urlencode
+from typing import Optional
 
 from hermes_cli.dashboard_auth import list_interactive_providers, list_session_providers
 
@@ -514,7 +515,7 @@ _PASSWORD_FORM_SCRIPT = """\
 """
 
 
-def render_login_html(*, next_path: str = "", prefix: str = "") -> str:
+def render_login_html(*, next_path: str = "", prefix: str = "", interactive: Optional[list] = None) -> str:
     """Return the full HTML for ``GET /login``.
 
     ``next_path`` is threaded into each provider button/form so the OAuth round
@@ -526,6 +527,9 @@ def render_login_html(*, next_path: str = "", prefix: str = "") -> str:
     works behind a reverse proxy that mounts the dashboard at a
     sub-path. Empty string (default) means no prefix — bare-root
     deploys are unaffected.
+
+    ``interactive`` — the sign-in options to offer (the caller's address may be limited to some by
+    ``dashboard.auth_networks``); default: every interactive provider.
     """
     providers = list_session_providers()
     if not providers:
@@ -533,7 +537,8 @@ def render_login_html(*, next_path: str = "", prefix: str = "") -> str:
     # URL-encode then HTML-escape, matching the gate's ``_safe_next_target``
     # shape so a round-tripped value is byte-identical.
     next_qs = f"&next={html.escape(quote(next_path, safe=''), quote=True)}" if next_path else ""
-    interactive = list_interactive_providers()
+    if interactive is None:
+        interactive = list_interactive_providers()
     if not interactive:
         # A deployment authenticated by a provisioned credential (e.g. the
         # session-token provider): there is nothing to click. Say so instead of

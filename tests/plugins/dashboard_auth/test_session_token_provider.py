@@ -240,9 +240,12 @@ class TestInteractiveSurfaces:
         from hermes_cli.dashboard_auth.routes import api_auth_providers
 
         registry.register_global_provider(plugin.SessionTokenProvider(token=_token()))
-        providers = asyncio.run(api_auth_providers())
+        from fastapi import Request
+
+        request = Request({"type": "http", "headers": [], "client": ("127.0.0.1", 1)})
+        providers = asyncio.run(api_auth_providers(request))
         assert providers == {"providers": []}
 
         registry.register_global_provider(self._stub("nous", "Nous Research"))
-        providers = asyncio.run(api_auth_providers())
+        providers = asyncio.run(api_auth_providers(request))
         assert [p["name"] for p in providers["providers"]] == ["nous"]

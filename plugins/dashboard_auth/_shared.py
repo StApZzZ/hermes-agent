@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
+import json
 import logging
 import math
 import os
 import secrets
+import time
 import urllib.parse
 from typing import Any, Callable, Dict, Optional
 
@@ -79,6 +82,37 @@ def parse_leeway(raw: Any) -> float:
     if not math.isfinite(value) or value < 0:
         return 0.0
     return value
+
+
+# ---- Stateless session tokens (HMAC-signed blobs) ----
+
+# The HMAC-SHA256 digest is appended as a fixed-length suffix (no separator: binary HMAC bytes
+# cannot be confused with a delimiter).
+_SIG_LEN = hashlib.sha256().digest_size
+
+
+def sign_token(payload: dict, secret: bytes) -> str:
+    """``base64url(json(payload) || HMAC-SHA256(secret, json))``, for providers without an IDP."""
+    raw = json.dumps(payload, separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw + hmac.new(secret, raw, hashlib.sha256).digest()).decode()
+
+
+def unsign_token(token: str, secret: bytes, kind: str) -> Optional[dict]:
+    """The payload of a :func:`sign_token` token when its signature is valid, its ``kind`` matches
+    and its ``exp`` has not passed; ``None`` otherwise (any decode error included)."""
+    try:
+        blob = base64.urlsafe_b64decode(token.encode())
+        if len(blob) <= _SIG_LEN:
+            return None
+        raw, sig = blob[:-_SIG_LEN], blob[-_SIG_LEN:]
+        if not hmac.compare_digest(sig, hmac.new(secret, raw, hashlib.sha256).digest()):
+            return None
+        payload = json.loads(raw)
+    except Exception:  # health: allow BLE001 -- any malformed token (binascii, UnicodeDecode, JSON) is simply not ours
+        return None
+    if not isinstance(payload, dict) or payload.get("kind") != kind or payload.get("exp", 0) <= int(time.time()):
+        return None
+    return payload
 
 
 # ---- register() bookkeeping ----

@@ -1038,6 +1038,18 @@ DEFAULT_CONFIG = {
             "secret": "",
             "session_ttl_seconds": 0,  # 0 → plugin default (12h)
         },
+        # Telegram Mini App sign-in (dashboard_auth/telegram plugin): the bot's menu button opens
+        # /auth/login?provider=telegram-mini-app and Telegram's signed launch data (checked with
+        # TELEGRAM_BOT_TOKEN) signs in only these numeric Telegram user ids; empty = no-op.
+        "telegram_mini_app": {
+            "allowed_users": [],
+            "session_ttl_seconds": 0,  # 0 → plugin default (12h)
+        },
+        # Provider name -> IP addresses / CIDR networks its sign-in and sessions are accepted from
+        # (e.g. basic: [your VPN exit addresses]); a provider not named here is accepted from any
+        # address, one named with nothing valid from none. Client address = the ASGI peer
+        # (X-Forwarded-For only from trusted_proxies). Read per request: edits need no restart.
+        "auth_networks": {},
         "session_token_auth": {"enabled": True},  # session_token plugin: a provisioned HERMES_DASHBOARD_SESSION_TOKEN (literal or file:<path>) authorizes the gated dashboard; enabled: false opts out
         # Drain-control token auth (dashboard_auth/drain plugin): the secret is NOT here (env
         # HERMES_DASHBOARD_DRAIN_SECRET); no-op unless >=256-bit, weak secrets rejected (fail-closed).

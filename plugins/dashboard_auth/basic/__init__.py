@@ -23,7 +23,8 @@ from typing import Optional
 
 from hermes_cli.dashboard_auth import DashboardAuthProvider, InvalidCredentialsError, RefreshExpiredError, Session
 from plugins.dashboard_auth._shared import (
-    NonInteractiveMixin, SkipRegistration, load_config_section, register_provider, resolve_env_or_cfg)
+    NonInteractiveMixin, SkipRegistration, load_config_section, register_provider, resolve_env_or_cfg,
+    sign_token, unsign_token)
 
 logger = logging.getLogger(__name__)
 _TAG = "dashboard-auth-basic"
@@ -39,10 +40,6 @@ _SCRYPT_R = 8
 _SCRYPT_P = 1
 _SCRYPT_DKLEN = 32
 _SCRYPT_SALT_BYTES = 16
-
-# HMAC-SHA256 digest is appended to signed tokens as a fixed-length suffix
-# (no separator — binary HMAC bytes can't be confused with a delimiter).
-_SIG_LEN = hashlib.sha256().digest_size
 
 LAST_SKIP_REASON: str = ""
 
@@ -81,33 +78,6 @@ def _verify_password(password: str, encoded: str) -> bool:
 # Verified against when the username is unknown so "no such user" and "wrong
 # password" take comparable time.
 _DUMMY_HASH = hash_password("dummy-password-for-constant-time-verify")
-
-
-# ---- Token signing (stateless HMAC-signed blobs) ----
-
-def _sign(payload: dict, secret: bytes) -> str:
-    raw = json.dumps(payload, separators=(",", ":")).encode()
-    sig = hmac.new(secret, raw, hashlib.sha256).digest()
-    return base64.urlsafe_b64encode(raw + sig).decode()
-
-
-def _unsign(token: str, secret: bytes, kind: str) -> Optional[dict]:
-    """Return the payload if the signature is valid, ``kind`` matches and it
-    is unexpired; ``None`` otherwise (including on any decode error)."""
-    try:
-        blob = base64.urlsafe_b64decode(token.encode())
-        if len(blob) <= _SIG_LEN:
-            return None
-        raw, sig = blob[:-_SIG_LEN], blob[-_SIG_LEN:]
-        expected = hmac.new(secret, raw, hashlib.sha256).digest()
-        if not hmac.compare_digest(sig, expected):
-            return None
-        payload = json.loads(raw)
-    except Exception:
-        return None
-    if payload.get("kind") != kind or payload.get("exp", 0) <= int(time.time()):
-        return None
-    return payload
 
 
 # ---- Provider ----
@@ -150,7 +120,7 @@ class BasicAuthProvider(NonInteractiveMixin, DashboardAuthProvider):
     # ---- session lifecycle -------------------------------------------------
 
     def verify_session(self, *, access_token: str) -> Optional[Session]:
-        payload = _unsign(access_token, self._secret, "access")
+        payload = unsign_token(access_token, self._secret, "access")
         if payload is None:
             return None
         return self._session(str(payload.get("sub", "")), int(payload["exp"]), access_token, "")
@@ -158,7 +128,7 @@ class BasicAuthProvider(NonInteractiveMixin, DashboardAuthProvider):
     def refresh_session(self, *, refresh_token: str) -> Session:
         if not refresh_token:
             raise RefreshExpiredError("no refresh token present in session")
-        payload = _unsign(refresh_token, self._secret, "refresh")
+        payload = unsign_token(refresh_token, self._secret, "refresh")
         if payload is None:
             raise RefreshExpiredError("refresh token expired or invalid")
         return self._mint_session(str(payload.get("sub", self._username)))
@@ -177,8 +147,8 @@ class BasicAuthProvider(NonInteractiveMixin, DashboardAuthProvider):
         jti = secrets.token_urlsafe(16)
         return self._session(
             user_id, exp,
-            _sign({"sub": user_id, "kind": "access", "exp": exp, "jti": jti}, self._secret),
-            _sign({"sub": user_id, "kind": "refresh", "exp": now + _REFRESH_TTL_SECONDS, "jti": jti}, self._secret))
+            sign_token({"sub": user_id, "kind": "access", "exp": exp, "jti": jti}, self._secret),
+            sign_token({"sub": user_id, "kind": "refresh", "exp": now + _REFRESH_TTL_SECONDS, "jti": jti}, self._secret))
 
     def _session(self, user_id: str, exp: int, access_token: str, refresh_token: str) -> Session:
         return Session(
