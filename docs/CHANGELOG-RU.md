@@ -20,6 +20,8 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+## 2026.11.11
+
 ### Новое
 
 - **Веб-панель по HTTPS, вход только из VPN.** `scripts/remote-dev/web-access.sh apply` (от root на сервере)
