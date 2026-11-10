@@ -20,6 +20,8 @@ python scripts/fork_release.py --apply --push   # выпустить и опуб
 
 ## Не выпущено
 
+## 2026.11.10
+
 ### Новое
 
 - **Картинки работают с подписками Claude и Codex.** При провайдере `claude-cli` или `codex-cli` фото
