@@ -33,8 +33,52 @@ A paid [Nous Portal](./tool-gateway.md) subscription supplies the LLM (step 2) *
 | Feature | Platform | Description |
 |---------|----------|-------------|
 | **Interactive Voice** | CLI | Press Ctrl+B to record, agent auto-detects silence and responds |
+| **Voice Messages In** | Telegram, Discord, and every other messaging adapter | A voice note you send the bot is transcribed, then answered |
 | **Auto Voice Reply** | Telegram, Discord | Agent sends spoken audio alongside text responses |
 | **Voice Channel** | Discord | Bot joins VC, listens to users speaking, speaks replies back |
+
+## Voice messages sent to your bot
+
+Every messaging adapter accepts voice notes, and it accepts them whether or not speech-to-text is
+set up. That is the one voice feature you get without asking for it, so it is also the one that
+fails quietly: with no STT provider the recording still arrives, the agent is handed a placeholder
+saying the audio could not be transcribed, and it answers a message it never heard. Nothing in the
+chat explains why.
+
+Two commands settle it:
+
+```bash
+hermes doctor          # "Speech-to-Text" section: ready, or what to install
+hermes setup tools     # → 🎙️ Speech-to-Text, to pick a provider
+```
+
+Picking a provider is a trade between latency and where the audio goes:
+
+- **Local Whisper** (`faster-whisper`, no API key) keeps every recording on the machine running the
+  gateway. On a CPU-only host, transcription takes a noticeable fraction of the clip's own length —
+  fine for a home server, slow for snappy chat. Install it directly with
+  `hermes pm install --extra stt-whisper`; the model downloads on first use.
+- **A cloud provider** (Groq's free Whisper tier, OpenAI, Mistral, ElevenLabs, xAI, DeepInfra)
+  answers in a second or two, at the cost of sending the audio off the box.
+
+These are not exclusive. When `stt.provider` names a cloud provider, a failed call falls back to
+local Whisper automatically, so installing the local extra is worth it even when the cloud provider
+is the one you want:
+
+```yaml
+stt:
+  provider: groq        # primary
+  language: "en"        # global hint; "" to auto-detect
+  local:
+    model: turbo        # the fallback, used when the primary fails
+    unload_after_idle_seconds: 300   # 0 keeps the model resident
+```
+
+:::caution One bot token, one poller
+Running a second gateway with the same bot token makes the two instances evict each other from
+Telegram's long-poll. Each recovery drops the queued updates, so messages — voice notes included —
+are lost outright rather than delayed. `hermes doctor` reports this under **Messaging Polling**.
+:::
 
 ## Requirements
 

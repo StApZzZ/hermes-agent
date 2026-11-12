@@ -440,6 +440,17 @@ The proxy applies to both the main Telegram connection and the fallback IP trans
 
 If the fallback IP discovery path is unhealthy on your host, set `HERMES_TELEGRAM_DISABLE_FALLBACK_IPS=true` to keep cold connect on the plain `api.telegram.org` path. You can also bound DNS-over-HTTPS fallback discovery with `HERMES_TELEGRAM_FALLBACK_DISCOVERY_TIMEOUT` in seconds; the default is `5`.
 
+## First message: `/start`
+
+Telegram sends `/start` the first time anyone opens your bot. Hermes answers it with a short
+introduction: what this agent can do on this platform, whether voice messages are transcribed, and
+where the command list lives.
+
+The capability lines are built from the toolsets actually enabled for Telegram
+(`platform_toolsets.telegram`), so the intro never advertises something the toolset gate would then
+refuse. Narrow the toolset list and the intro narrows with it. `/help` remains the full command
+catalogue.
+
 ## Home Channel
 
 Use the `/sethome` command in any Telegram chat (DM or group) to designate it as the **home channel**. Scheduled tasks (cron jobs) deliver their results to this channel.
@@ -469,11 +480,18 @@ TELEGRAM_CRON_THREAD_ID=<topic_thread_id>
 
 ### Incoming Voice (Speech-to-Text)
 
-Voice messages you send on Telegram are automatically transcribed by Hermes's configured STT provider and injected as text into the conversation.
+Voice messages you send on Telegram are transcribed by Hermes's configured STT provider and injected as text into the conversation.
 
 - `local` uses `faster-whisper` on the machine running Hermes — no API key required
 - `groq` uses Groq Whisper and requires `GROQ_API_KEY`
 - `openai` uses OpenAI Whisper and requires `VOICE_TOOLS_OPENAI_KEY`
+
+The bot accepts voice notes whether or not a provider is set up, and an unset one fails quietly:
+the agent receives a placeholder instead of your words and answers something it never heard. Run
+`hermes doctor` — its **Speech-to-Text** section says whether transcription is actually ready, and
+names the fix — or `hermes setup tools` → 🎙️ Speech-to-Text to pick a provider. See
+[Voice messages sent to your bot](../features/voice-mode.md#voice-messages-sent-to-your-bot) for
+the latency-versus-privacy trade between local and cloud providers.
 
 #### Skipping STT: pass the raw audio file to the agent
 
