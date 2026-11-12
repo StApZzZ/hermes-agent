@@ -203,6 +203,12 @@ def _quick_setup_voice(config: dict) -> None:
         return
     _configure_toolset("stt", config)
     save_config(config)
+    if active_stt_provider() == "local":
+        # Local Whisper is picked but still has no model or language, and the sizes differ by
+        # gigabytes of RAM. `hermes setup stt` is the one place that chooses against this machine
+        # and prefetches the model; finish there rather than printing its name and stopping.
+        from hermes_cli.setup_stt import setup_stt
+        setup_stt(config)
 
 
 def _print_macos_fda_tip() -> None:

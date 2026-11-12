@@ -46,3 +46,31 @@ def test_working_stt_is_not_asked_again():
     prompt, configure = _run(["cli", "telegram"], "local")
     assert not prompt.called
     assert not configure.called
+
+
+def test_local_whisper_continues_into_the_model_picker():
+    # Picking Local Whisper leaves a provider with no model and no language, and the sizes differ by
+    # gigabytes of RAM. Quick Setup finishes the job instead of naming another command.
+    with (
+        patch("hermes_cli.tools_config._get_enabled_platforms", return_value=["cli", "telegram"]),
+        patch("tools.transcription_tools.active_stt_provider", side_effect=["none", "local"]),
+        patch("hermes_cli.setup.prompt_choice", return_value=0),
+        patch("hermes_cli.tools_config._configure_toolset"),
+        patch("hermes_cli.setup.save_config"),
+        patch("hermes_cli.setup_stt.setup_stt") as setup_stt,
+    ):
+        _quick_setup_voice({})
+    assert setup_stt.called
+
+
+def test_cloud_provider_does_not_run_the_local_model_picker():
+    with (
+        patch("hermes_cli.tools_config._get_enabled_platforms", return_value=["cli", "telegram"]),
+        patch("tools.transcription_tools.active_stt_provider", side_effect=["none", "groq"]),
+        patch("hermes_cli.setup.prompt_choice", return_value=0),
+        patch("hermes_cli.tools_config._configure_toolset"),
+        patch("hermes_cli.setup.save_config"),
+        patch("hermes_cli.setup_stt.setup_stt") as setup_stt,
+    ):
+        _quick_setup_voice({})
+    assert not setup_stt.called
