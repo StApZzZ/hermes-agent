@@ -582,6 +582,7 @@ def _record_send_consent_change(*, enabled: bool) -> None:
 # hermes_cli.setup. They import this module lazily inside bodies, so this is cycle-free.
 
 from hermes_cli.setup_tts import setup_tts
+from hermes_cli.setup_stt import setup_stt
 from hermes_cli.setup_terminal import setup_terminal_backend
 from hermes_cli.setup_platforms import setup_gateway
 from hermes_cli.setup_summary import _print_setup_summary
@@ -595,6 +596,7 @@ from hermes_cli.setup_quick import _run_portal_one_shot, _run_quick_setup
 SETUP_SECTIONS = [
     ("model", "Model & Provider", setup_model_provider),
     ("tts", "Text-to-Speech", setup_tts),
+    ("stt", "Speech-to-Text", setup_stt),
     ("terminal", "Terminal Backend", setup_terminal_backend),
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),

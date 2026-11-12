@@ -248,7 +248,12 @@ export const ENUM_OPTIONS: Record<string, string[]> = {
   // modal/daytona/ssh). Remote backends need extra env (image, tokens, host).
   'terminal.backend': ['local', 'docker', 'singularity', 'modal', 'daytona', 'ssh'],
   'stt.elevenlabs.model_id': ['scribe_v2', 'scribe_v1'],
-  'stt.local.model': ['tiny', 'base', 'small', 'medium', 'large-v3', 'turbo'],
+  // Local faster-whisper sizes — kept in sync with LOCAL_WHISPER_MODELS in tools/transcription_common.py.
+  'stt.local.model': [
+    'tiny', 'base', 'small', 'medium', 'turbo', 'large-v3', 'large-v2', 'large-v1',
+    'tiny.en', 'base.en', 'small.en', 'medium.en',
+    'distil-small.en', 'distil-medium.en', 'distil-large-v2', 'distil-large-v3', 'distil-large-v3.5'
+  ],
   // Speech-to-text backends — kept in sync with BUILTIN_STT_PROVIDERS in
   // tools/transcription_common.py (local_command is auto-detected, not picked).
   'stt.provider': ['local', 'groq', 'openai', 'mistral', 'xai', 'elevenlabs', 'deepinfra'],

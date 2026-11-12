@@ -148,7 +148,7 @@ ELEVENLABS_API_KEY=***           # ElevenLabs — premium quality
 ```
 
 :::tip
-If `faster-whisper` is installed, voice mode works with **zero API keys** for STT. The model (~150 MB for `base`) downloads automatically on first use.
+If `faster-whisper` is installed, voice mode works with **zero API keys** for STT. The model (~150 MB for `base`) downloads automatically on first use. `hermes setup stt` does it in one pass: it shows every Whisper size with its download, memory and accuracy, recommends one for the machine, sets the language, installs faster-whisper and downloads the model.
 :::
 
 The first download normally comes from `huggingface.co`. If that host is unavailable on your network, export an accessible mirror in the shell or service that starts Hermes:
@@ -556,7 +556,7 @@ stt:
   provider: "local"                  # "local" (free) | "groq" | "openai" | "mistral" | "xai" | "elevenlabs" | "deepinfra"
   language: "en"                     # global hint for every provider; set "" to auto-detect
   local:
-    model: "base"                    # tiny, base, small, medium, large-v3, turbo
+    model: "base"                    # tiny, base, small, medium, turbo, large-v3 (all sizes: hermes setup stt)
     language: ""                     # optional ISO-639-1 hint; blank = stt.language, then HERMES_LOCAL_STT_LANGUAGE, then auto-detect
   groq:
     language: ""                     # optional ISO-639-1 hint; blank = stt.language, then HERMES_LOCAL_STT_LANGUAGE, then auto-detect

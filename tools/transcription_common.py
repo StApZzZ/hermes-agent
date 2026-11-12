@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from typing import Any, Dict
+from typing import Any, Dict, NamedTuple
 
 from tools.tts_command_provider import _get_provider_section as _get_stt_section
 
@@ -41,11 +41,43 @@ SUPPORTED_FORMATS = {".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", 
 LOCAL_NATIVE_AUDIO_FORMATS = {".wav", ".aiff", ".aif"}
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB
 
+class LocalWhisperModel(NamedTuple):
+    """One faster-whisper size and what it costs on a machine (CPU int8, the no-GPU default)."""
+    name: str
+    params: str  # parameter count
+    download_mb: int  # Hugging Face download (decimal MB), cached under ~/.cache/huggingface
+    ram_mb: int  # peak resident memory (decimal MB) of a CPU process that loaded it
+    english_only: bool
+    summary: str
+
+
+# Every size faster-whisper accepts, smallest first within each group; ``large`` and
+# ``large-v3-turbo`` are faster-whisper aliases of large-v3 and turbo.
+LOCAL_WHISPER_MODELS = (
+    LocalWhisperModel("tiny", "39M", 75, 350, False, "fastest, roughest: short, clearly spoken phrases"),
+    LocalWhisperModel("base", "74M", 145, 480, False, "fast, many mistakes outside English"),
+    LocalWhisperModel("small", "244M", 485, 870, False, "balanced: decent accuracy, quick on a CPU"),
+    LocalWhisperModel("medium", "769M", 1530, 2340, False, "accurate; turbo is as good and faster"),
+    LocalWhisperModel("turbo", "809M", 1620, 2250, False, "near large-v3 accuracy, about twice as fast"),
+    LocalWhisperModel("large-v3", "1550M", 3090, 4350, False, "most accurate, slowest: a GPU or patience"),
+    LocalWhisperModel("large-v2", "1550M", 3090, 4350, False, "previous large; steadier on some noisy audio"),
+    LocalWhisperModel("large-v1", "1550M", 3090, 4350, False, "first large model, superseded by v2 and v3"),
+    LocalWhisperModel("tiny.en", "39M", 75, 350, True, "tiny, English only"),
+    LocalWhisperModel("base.en", "74M", 145, 480, True, "base, English only"),
+    LocalWhisperModel("small.en", "244M", 485, 870, True, "small, English only"),
+    LocalWhisperModel("medium.en", "769M", 1530, 2340, True, "medium, English only"),
+    LocalWhisperModel("distil-small.en", "166M", 335, 730, True, "distilled small.en: faster, English only"),
+    LocalWhisperModel("distil-medium.en", "394M", 790, 1260, True, "distilled medium.en: faster, English only"),
+    LocalWhisperModel("distil-large-v2", "756M", 1510, 2100, True, "distilled large-v2: ~6x faster, English only"),
+    LocalWhisperModel("distil-large-v3", "756M", 1510, 2100, True, "distilled large-v3: ~6x faster, English only"),
+    LocalWhisperModel("distil-large-v3.5", "756M", 1510, 2100, True, "newest distilled large, English only"),
+)
+
 # Per-provider model catalogs keyed by ``stt.<provider>`` section, default first. This one table
 # feeds the `hermes tools` picker, the dashboard selects and the auto-correction sets below.
 # DeepInfra has no static list: its picker reads the live catalog.
 STT_MODEL_CATALOG = {
-    "local": ["base", "tiny", "small", "medium", "large-v3", "turbo"],
+    "local": [DEFAULT_LOCAL_MODEL, *(m.name for m in LOCAL_WHISPER_MODELS if m.name != DEFAULT_LOCAL_MODEL)],
     "groq": ["whisper-large-v3-turbo", "whisper-large-v3"],
     "openai": ["whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe", "gpt-transcribe"],
     "mistral": ["voxtral-mini-latest", "voxtral-mini-2602"],

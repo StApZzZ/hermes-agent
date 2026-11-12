@@ -482,7 +482,7 @@ TELEGRAM_CRON_THREAD_ID=<topic_thread_id>
 
 Voice messages you send on Telegram are transcribed by Hermes's configured STT provider and injected as text into the conversation.
 
-- `local` uses `faster-whisper` on the machine running Hermes — no API key required
+- `local` uses `faster-whisper` on the machine running Hermes — no API key required. `hermes setup stt` installs it, picks the model and language, and downloads the model
 - `groq` uses Groq Whisper and requires `GROQ_API_KEY`
 - `openai` uses OpenAI Whisper and requires `VOICE_TOOLS_OPENAI_KEY`
 

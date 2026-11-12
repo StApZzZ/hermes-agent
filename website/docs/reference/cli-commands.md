@@ -413,7 +413,7 @@ the full guide, supported languages, and configuration knobs.
 ## `hermes setup`
 
 ```bash
-hermes setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure] [--portal]
+hermes setup [model|tts|stt|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure] [--portal]
 ```
 
 **Easiest path:** `hermes setup --portal` — OAuth into Nous Portal and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md) in one shot.
@@ -429,6 +429,8 @@ Jump into one section instead of the full wizard:
 | Section | Description |
 |---------|-------------|
 | `model` | Provider and model setup. |
+| `tts` | Text-to-speech provider. |
+| `stt` | Local Whisper for voice messages: pick a model (download, memory and accuracy shown for each size) and a language; installs faster-whisper, downloads the model and offers a gateway restart. |
 | `terminal` | Terminal backend and sandbox setup. |
 | `gateway` | Messaging platform setup. |
 | `tools` | Enable/disable tools per platform. |

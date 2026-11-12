@@ -676,7 +676,14 @@ def _configure_stt_model(stt_provider: str, config: dict) -> None:
     model_key = STT_MODEL_CONFIG_KEY.get(stt_provider, "model")
     current = str(prov_cfg.get(model_key) or "").strip()
     ordered = list(catalog)
-    chosen = ordered[_prompt_choice("  Select STT model:", ordered, ordered.index(current) if current in ordered else 0)]
+    labels = ordered
+    if stt_provider == "local":
+        from hermes_cli.setup_stt import local_model_label
+        from tools.transcription_common import LOCAL_WHISPER_MODELS
+        ordered = [model.name for model in LOCAL_WHISPER_MODELS]
+        labels = [local_model_label(model) for model in LOCAL_WHISPER_MODELS]
+        current = current or catalog[0]  # the catalog lists the default first
+    chosen = ordered[_prompt_choice("  Select STT model:", labels, ordered.index(current) if current in ordered else 0)]
     prov_cfg[model_key] = chosen
     _print_success(f"  STT model set to: {chosen}")
 
