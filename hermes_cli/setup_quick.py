@@ -167,6 +167,7 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool, im
         # Messaging is optional; service persistence still requires explicit consent.
         from hermes_cli.gateway_setup_service import ensure_gateway_service
         ensure_gateway_service(context="setup", interactive=True, config=config)
+    _quick_setup_voice(config)
     print()
     print_success("Setup complete! You're ready to go.")
     _info(None, "  Configure all settings:    hermes setup")
@@ -175,6 +176,33 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool, im
     _print_macos_fda_tip()
     print()
     _print_setup_summary(config, hermes_home)
+
+
+def _quick_setup_voice(config: dict) -> None:
+    """Offer speech-to-text once a messaging platform is connected.
+
+    Quick Setup skips the Tools step, so it used to leave voice transcription unconfigured on the
+    one path where it matters most: every messaging adapter accepts voice messages, and with no STT
+    backend each one reaches the agent as an untranscribed placeholder — the bot answers without
+    having heard it, and nothing in the chat says why.
+    """
+    from hermes_cli.setup import print_info, prompt_choice, save_config
+    from hermes_cli.tools_config import _configure_toolset, _get_enabled_platforms
+    from tools.transcription_tools import active_stt_provider
+
+    platforms = [p for p in _get_enabled_platforms() if p != "cli"]
+    if not platforms or active_stt_provider() != "none":
+        return
+    print()
+    choice = prompt_choice(
+        f"Transcribe voice messages? ({', '.join(platforms)} can receive them)",
+        ["Set up speech-to-text now (recommended)",
+         "Skip — voice messages arrive untranscribed; set up later with 'hermes setup tools'"], 0)
+    if choice != 0:
+        print_info("  Transcribe voice later:    hermes setup tools")
+        return
+    _configure_toolset("stt", config)
+    save_config(config)
 
 
 def _print_macos_fda_tip() -> None:
