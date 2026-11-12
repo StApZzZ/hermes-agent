@@ -144,12 +144,23 @@ def _fresh_python() -> tuple[list[str], dict | None]:
     return [sys.executable], None  # a developer venv: this interpreter is the environment
 
 
+# A 3 GB model over a slow link is the worst honest case; past that the download is wedged, and the
+# first voice message can fetch it instead of setup hanging with no way out.
+_PREFETCH_TIMEOUT = 40 * 60
+# `gateway restart` returns as soon as it has signalled the running gateway.
+_RESTART_TIMEOUT = 120
+
+
 def _prefetch_model(model: str) -> None:
     """Download and load the model once, so the first voice message does not wait for it."""
     _setup.print_info(f"Downloading and loading '{model}' (one time; large models take a few minutes)...")
     command, env = _fresh_python()
-    result = subprocess.run([*command, "-c", _PREFETCH_SCRIPT, model], env=env, stdout=subprocess.PIPE,
-                            stdin=subprocess.DEVNULL, text=True, check=False)
+    try:
+        result = subprocess.run([*command, "-c", _PREFETCH_SCRIPT, model], env=env, stdout=subprocess.PIPE,
+                                stdin=subprocess.DEVNULL, text=True, check=False, timeout=_PREFETCH_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        _setup.print_warning("The download is taking too long; it will continue on the first voice message.")
+        return
     if result.returncode != 0:
         _setup.print_warning("The model did not load now; it will download on the first voice message.")
         return
@@ -165,7 +176,11 @@ def _offer_gateway_restart() -> None:
     if _setup.prompt_yes_no("Restart the gateway now so messengers use Whisper?", True):
         from hermes_cli.relaunch import build_relaunch_argv
 
-        subprocess.run(build_relaunch_argv(["gateway", "restart"]), check=False)
+        try:
+            subprocess.run(build_relaunch_argv(["gateway", "restart"]), check=False,
+                           stdin=subprocess.DEVNULL, timeout=_RESTART_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            _setup.print_warning("The gateway did not restart in time; restart it with: hermes gateway restart")
     else:
         _setup.print_info("Restart it later with: hermes gateway restart")
 
