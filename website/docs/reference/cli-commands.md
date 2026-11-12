@@ -1123,6 +1123,7 @@ hermes debug share              # Upload debug report, print URL
 hermes debug share --lines 500  # Include more log lines
 hermes debug share --expire 30  # Keep paste for 30 days
 hermes debug share --nous       # Upload a private diagnostics bundle for Nous support
+                                # (off until `hermes config set telemetry.nous_diagnostics true`)
 hermes debug share --local      # Print report to terminal (no upload)
 ```
 

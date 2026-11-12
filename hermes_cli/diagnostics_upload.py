@@ -1,7 +1,12 @@
 """Client for uploading ``hermes debug share`` bundles to Nous-internal S3.
 1. POST {NAS_BASE}/api/diagnostics/upload-url → {uploadUrl, viewUrl, id, ...}; the body carries ``sizeBytes``,
    which NAS signs into the presigned URL's ``ContentLength``, so the PUT must send exactly that many bytes.
-2. PUT <uploadUrl> (gzipped bundle, Content-Type application/gzip). NAS is stateless — no confirm step."""
+2. PUT <uploadUrl> (gzipped bundle, Content-Type application/gzip). NAS is stateless — no confirm step.
+
+Nothing here runs unless ``telemetry.nous_diagnostics`` is true: this fork ships no vendor upload
+armed by default. The gate sits on the first egress call, so every caller -- the CLI's
+``hermes debug share --nous``, the gateway's ``diagnostics.share_nous`` RPC and the desktop button
+behind it -- fails closed through one check."""
 
 import json
 import os
@@ -27,9 +32,28 @@ def _urlopen_checked(url: str, data: bytes, method: str, headers: dict, *, timeo
         return resp.read()
 
 
+def nous_diagnostics_enabled() -> bool:
+    """Whether the user armed the upload to the vendor (``telemetry.nous_diagnostics``; default off)."""
+    from hermes_cli.config import load_config
+
+    telemetry = load_config().get("telemetry")
+    return bool(telemetry.get("nous_diagnostics")) if isinstance(telemetry, dict) else False
+
+
+def _require_opt_in() -> None:
+    """Fail closed, naming the one command that arms it. The message reaches the user verbatim: the
+    CLI prints it and ``diagnostics.share_nous`` returns it as the dialog's error text."""
+    if not nous_diagnostics_enabled():
+        raise RuntimeError(
+            "Uploading diagnostics to Nous is off (telemetry.nous_diagnostics). The bundle carries your "
+            "logs, so this fork does not arm it by default. Turn it on with: "
+            "hermes config set telemetry.nous_diagnostics true")
+
+
 def request_upload_url(content_type: str = "application/gzip", size_bytes: int | None = None) -> dict:
     """Ask NAS to mint a presigned PUT URL for a diagnostics bundle. Returns the parsed JSON, expected to
     carry at least ``uploadUrl``, ``viewUrl`` and ``id``. Raises on non-2xx responses or unparseable JSON."""
+    _require_opt_in()
     payload: dict = {"contentType": content_type}
     if size_bytes is not None:
         payload["sizeBytes"] = int(size_bytes)

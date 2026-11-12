@@ -2230,6 +2230,10 @@ display:
 # See docs/observability/relay-shared-metrics.md (Appendix A) for the full
 # consent, identity, retention, and deletion decisions.
 telemetry:
+  # `hermes debug share --nous` and the desktop's "Send diagnostics" button upload a redacted
+  # debug bundle -- logs, so conversation content -- to Nous-internal storage. Off here means the
+  # path does not exist; the per-upload consent prompt still applies once you turn it on.
+  nous_diagnostics: false
   shared_metrics:
     enabled: false
     send: false

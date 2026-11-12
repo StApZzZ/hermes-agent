@@ -2324,6 +2324,11 @@ DEFAULT_CONFIG = {
     # and upload to Nous (`send`) are separate keys that every consent surface sets together; see
     # website/docs/developer-guide/relay-shared-metrics.md Appendix A for consent/retention.
     "telemetry": {
+        # Off: nothing in this fork uploads to the vendor unless you ask for it. True lets
+        # `hermes debug share --nous` and the desktop's "Send diagnostics" button send a redacted
+        # debug bundle (logs, so conversation content) to Nous-internal storage. Per upload the
+        # consent prompt still applies; this switch decides whether the path exists at all.
+        "nous_diagnostics": False,
         "shared_metrics": {
             "enabled": False,
             # Requires `enabled` (`send` alone logs an error). A package is sent only if its whole

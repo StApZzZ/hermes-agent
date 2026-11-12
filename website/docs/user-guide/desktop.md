@@ -890,7 +890,10 @@ generic error toast. The card offers recovery actions matched to the failure:
   local Desktop-side logs (transport evidence), since the failed turn's
   gateway/agent logs live on the remote machine.
 - **Send diagnostics** — uploads a redacted debug bundle to Nous-internal
-  storage after an explicit consent prompt (same pipeline as
+  storage after an explicit consent prompt. The path is **off until you arm it**
+  (`hermes config set telemetry.nous_diagnostics true`): the bundle carries your
+  logs, so nothing goes to the vendor unless you asked for it, and until then the
+  dialog answers with that setting's name. Once armed it is the same pipeline as
   `hermes debug share --nous`; secrets are always redacted, the bundle is
   viewable by Nous staff only and auto-deletes after 14 days). On success you
   get a private view link to paste into your support thread, plus quick links

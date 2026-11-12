@@ -605,7 +605,16 @@ _NOUS_PRIVACY_NOTICE = """\
 
 def _run_debug_share_nous(args, *, log_lines: int, redact: bool) -> None:
     """``hermes debug share --nous``: gzip the same bundle into the Nous envelope → Nous-S3."""
-    from hermes_cli.diagnostics_upload import share_to_nous
+    from hermes_cli.diagnostics_upload import nous_diagnostics_enabled, share_to_nous
+    if not nous_diagnostics_enabled():
+        # Refused here as well as at the egress: this way nothing is collected and the user is not
+        # walked through a privacy notice and a confirmation for an upload that cannot happen.
+        print("Uploading diagnostics to Nous is off (telemetry.nous_diagnostics).\n"
+              "The bundle carries your logs, so this fork does not arm it by default.\n\n"
+              "  Turn it on:  hermes config set telemetry.nous_diagnostics true\n"
+              "  Instead:     hermes debug share --local   (prints the report, uploads nothing)\n",
+              file=sys.stderr)
+        sys.exit(1)
     print(_NOUS_PRIVACY_NOTICE)
     if not _confirm_upload(args):
         return

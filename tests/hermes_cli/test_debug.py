@@ -985,6 +985,29 @@ class TestBuildNousBundle:
 
 
 class TestRunDebugShareNous:
+    @pytest.fixture
+    def armed(self, hermes_home):
+        """Uploading to Nous is off until the user asks for it (telemetry.nous_diagnostics);
+        everything below is about what happens once they have."""
+        (hermes_home / "config.yaml").write_text("telemetry:\n  nous_diagnostics: true\n")
+        return hermes_home
+
+    def test_upload_is_refused_until_the_user_arms_it(self, hermes_home, capsys):
+        """The default install must not be able to ship logs to the vendor, and the refusal has to
+        name the one setting that changes that -- otherwise it reads as a broken feature."""
+        from hermes_cli.debug import run_debug_share
+
+        with patch("hermes_cli.dump.run_dump"), patch(
+            "hermes_cli.diagnostics_upload.share_to_nous"
+        ) as share, patch("hermes_cli.debug.collect_share_bundle") as collect:
+            with pytest.raises(SystemExit) as exc:
+                run_debug_share(self._args())
+        assert exc.value.code == 1
+        assert not share.called
+        assert not collect.called  # refused before anything is gathered
+        err = capsys.readouterr().err
+        assert "telemetry.nous_diagnostics" in err
+
     def _args(self, **over):
         class _A:
             lines = 50
@@ -999,7 +1022,7 @@ class TestRunDebugShareNous:
             setattr(a, k, v)
         return a
 
-    def test_nous_success_prints_view_url(self, hermes_home, capsys):
+    def test_nous_success_prints_view_url(self, armed, capsys):
         from hermes_cli.debug import run_debug_share
 
         res = {
@@ -1019,7 +1042,7 @@ class TestRunDebugShareNous:
         blob = share.call_args[0][0]
         assert isinstance(blob, (bytes, bytearray)) and blob[:2] == b"\x1f\x8b"
 
-    def test_nous_failure_suggests_local(self, hermes_home, capsys):
+    def test_nous_failure_suggests_local(self, armed, capsys):
         from hermes_cli.debug import run_debug_share
 
         with patch("hermes_cli.dump.run_dump"), patch(
@@ -1032,7 +1055,7 @@ class TestRunDebugShareNous:
         err = capsys.readouterr().err
         assert "--local" in err
 
-    def test_nous_does_not_touch_pastebin(self, hermes_home):
+    def test_nous_does_not_touch_pastebin(self, armed):
         from hermes_cli.debug import run_debug_share
 
         res = {"id": "id-1", "viewUrl": "https://v"}
