@@ -277,6 +277,16 @@ def _get_provider(stt_config: dict) -> str:
     return "none"
 
 
+def active_stt_provider() -> str:
+    """The provider ``transcribe_audio`` would dispatch to right now; ``"none"`` when nothing can serve.
+
+    The public seam for callers that only need to REPORT readiness (``hermes doctor``, the setup
+    wizard). It resolves through ``_get_provider``, so a readiness answer and the real transcription
+    can never disagree.
+    """
+    return _get_provider(_load_stt_config())
+
+
 # ---- Provider: local (faster-whisper) -----------------------------------
 def _unload_local_model() -> None:
     """Release the cached local whisper model. Thread-safe via the model lock."""
