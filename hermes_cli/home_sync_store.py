@@ -120,8 +120,12 @@ def _ensure_profiles(root: Path, ops: list[dict]) -> None:
             raise SyncError(f"profile '{name}' was deleted on this machine; delete it on the other one "
                             f"too, or recreate it here (hermes profile create {name})")
         if not home.exists():
-            from hermes_cli.profiles import create_profile
-            create_profile(name, no_alias=True)
+            # provision_profile seeds bundled skills into every fresh profile, and a profile created
+            # BY a sync must not have them: the seeded files would be pushed to the other side on the
+            # next run, which is exactly what "each side seeds its own" prevents. The bare core create
+            # is what this needs; tests/hermes_cli/test_home_sync.py pins the second run as a no-op.
+            from hermes_cli.profiles import create_profile  # profile-create: ok -- see the comment above
+            create_profile(name, no_alias=True)  # profile-create: ok -- see the comment above
 
 
 def apply_ops(root: Path, ops: list[dict]) -> dict[str, str | None]:

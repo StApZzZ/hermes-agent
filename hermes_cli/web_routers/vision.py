@@ -24,7 +24,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from hermes_cli.web_deps import late
-from hermes_cli.web_routers._common import _CONFIG_MUTATION_LOCK, log as _log
+from hermes_cli.config_backend import CONFIG_MUTATION_LOCK
+from hermes_cli.web_routers._common import log as _log
 
 router = APIRouter()
 
@@ -115,7 +116,7 @@ async def set_vision_settings(body: VisionSettingsUpdate, profile: Optional[str]
         raise HTTPException(status_code=400, detail=f"image_input_mode must be one of {', '.join(IMAGE_MODES)}")
 
     def _run():
-        with _config_profile_scope(profile), _CONFIG_MUTATION_LOCK:
+        with _config_profile_scope(profile), CONFIG_MUTATION_LOCK:
             config = load_config()
             agent = config.get("agent") if isinstance(config.get("agent"), dict) else {}
             config["agent"] = {**agent, "image_input_mode": mode}
@@ -226,7 +227,7 @@ async def get_generation(profile: Optional[str] = None):
 @router.put("/api/vision/generation")
 async def set_generation(body: GenerationProviderUpdate, profile: Optional[str] = None):
     def _run():
-        with _config_profile_scope(profile), _CONFIG_MUTATION_LOCK:
+        with _config_profile_scope(profile), CONFIG_MUTATION_LOCK:
             state = _generation_state()
             if body.provider not in {c["name"] for c in state["choices"]}:
                 raise HTTPException(status_code=400, detail=f"{body.provider} is not available here")
