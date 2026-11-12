@@ -909,8 +909,12 @@ class GatewayInboundMixin(GatewayInboundHooksMixin, GatewayInboundTranscriptionM
         )
 
     async def _hm_cmd_start(self, event, source, _quick_key):
-        logger.info("Ignoring /start platform ping for session %s", _quick_key)
-        return True, ""
+        """A client's first-open ping. Answering it with "" made a new user's first contact with
+        their own agent silence; reply with what it can actually do here instead."""
+        from gateway.intro import build_start_intro
+        platform_name = source.platform.value if source.platform else "unknown"
+        logger.info("Answering /start with the capability intro for session %s", _quick_key)
+        return True, build_start_intro(platform_name)
 
     async def _hm_cmd_egress(self, event, source, _quick_key):
         from hermes_cli.proxy_cli import format_status_text

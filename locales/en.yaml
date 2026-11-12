@@ -45,6 +45,28 @@ approval:
     second_other: "{count} seconds"
 
 gateway:
+  # The /start reply (gateway/intro.py): a new chat's first and often only chance to learn what
+  # this agent can do. Plain language on purpose — tool names belong in /help, not here.
+  intro:
+    header: "☤ *Hermes* — your own AI agent."
+    lede: "Write to me the way you'd write to a person. I keep the thread, and I can act on things, not just answer."
+    can_header: "Here I can:"
+    cap_terminal: "run commands and watch processes on my machine"
+    cap_file: "read, write and edit files"
+    cap_web: "search the web and read pages"
+    cap_browser: "drive a real browser when a site needs clicking"
+    cap_vision: "look at images and screenshots you send"
+    cap_memory: "remember what matters about you and your work, between sessions"
+    cap_cron: "run jobs on a schedule and message you with the result"
+    cap_skills: "learn reusable skills for work you repeat"
+    cap_delegation: "hand long jobs to subagents and keep talking to you"
+    cap_image_gen: "generate images"
+    cap_session_search: "search everything we discussed before"
+    cap_todo: "plan multi-step work and track it"
+    cap_more: "…and more."
+    voice_on: "🎙️ Voice messages work — send one and I'll transcribe it."
+    voice_off: "🎙️ Voice messages aren't transcribed yet, so please type for now."
+    help_hint: "`/help` lists every command. `/new` starts a fresh conversation."
   approval_expired: "⚠️ Approval expired (agent is no longer waiting). Ask the agent to try again."
   draining: "⏳ Draining {count} active agent(s) before restart..."
   goal_cleared: "✓ Goal cleared."
