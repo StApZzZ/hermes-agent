@@ -157,7 +157,8 @@ def _prefetch_model(model: str) -> None:
     command, env = _fresh_python()
     try:
         result = subprocess.run([*command, "-c", _PREFETCH_SCRIPT, model], env=env, stdout=subprocess.PIPE,
-                                stdin=subprocess.DEVNULL, text=True, check=False, timeout=_PREFETCH_TIMEOUT)
+                                stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace",
+                                check=False, timeout=_PREFETCH_TIMEOUT)
     except subprocess.TimeoutExpired:
         _setup.print_warning("The download is taking too long; it will continue on the first voice message.")
         return
