@@ -907,7 +907,8 @@ The bundled `plugins/dashboard_auth/telegram_mini_app` plugin signs in from a [T
 ```yaml
 dashboard:
   telegram_mini_app:
-    allowed_users: [123456789]   # your numeric Telegram user id
+    allowed_users: [123456789]       # your numeric Telegram user id
+    session_ttl_seconds: 0           # how long a sign-in lasts; 0 keeps the plugin default (12h)
 ```
 
 The provider registers once `allowed_users` is set and the bot token is available. Point the bot's menu button for your chat at the sign-in URL, which must be public HTTPS (a Telegram requirement):
