@@ -28,6 +28,15 @@ def _resp(*, status=200, body=b""):
 # ---------------------------------------------------------------------------
 
 class TestRequestUploadUrl:
+    @pytest.fixture(autouse=True)
+    def armed(self):
+        """Uploading to Nous is off until the user arms it (telemetry.nous_diagnostics); the wire
+        format below is what happens once they have. The gate itself is owned by
+        tests/hermes_cli/test_nous_diagnostics_opt_in.py."""
+        with patch("hermes_cli.config.load_config",
+                   return_value={"telemetry": {"nous_diagnostics": True}}):
+            yield
+
     def test_happy_path_posts_json_and_returns_dict(self):
         from hermes_cli.diagnostics_upload import request_upload_url
 
@@ -66,7 +75,7 @@ class TestRequestUploadUrl:
             "hermes_cli.diagnostics_upload.urllib.request.urlopen",
             return_value=resp,
         ):
-            with pytest.raises(RuntimeError):
+            with pytest.raises(RuntimeError, match="HTTP 500"):
                 request_upload_url()
 
 
